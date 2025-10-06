@@ -292,7 +292,14 @@ function AppContent() {
           <Routes location={location}>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/recipes" element={<Recipes />} />
+            <Route
+              path="/recipes"
+              element={
+                <ProtectedRoute>
+                  <Recipes />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/meal-planner"
               element={
