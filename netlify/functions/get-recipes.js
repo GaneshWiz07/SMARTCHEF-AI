@@ -2,92 +2,294 @@ import axios from 'axios';
 
 const EDAMAM_APP_ID = process.env.EDAMAM_APP_ID;
 const EDAMAM_APP_KEY = process.env.EDAMAM_APP_KEY;
+const EDAMAM_RECIPE_APP_ID = process.env.EDAMAM_RECIPE_APP_ID;
+const EDAMAM_RECIPE_APP_KEY = process.env.EDAMAM_RECIPE_APP_KEY;
 
-// Helper function to fetch recipes from Edamam
-async function fetchEdamamRecipes(query, cuisineType, dietLabel, limit = 20, randomOffset = 0) {
-  if (!EDAMAM_APP_ID || !EDAMAM_APP_KEY) {
-    console.log('Edamam credentials not configured, skipping Edamam fetch');
+// Helper function to strip HTML tags and clean text
+function stripHtml(html) {
+  if (!html) return '';
+  
+  // Remove HTML tags
+  let text = html.replace(/<[^>]*>/g, '');
+  
+  // Decode HTML entities
+  text = text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&ldquo;/g, '"')
+    .replace(/&rdquo;/g, '"')
+    .replace(/&mdash;/g, '—')
+    .replace(/&ndash;/g, '–');
+  
+  // Remove extra whitespace
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  return text;
+}
+
+// Helper function to fetch recipes from TheMealDB as fallback
+async function fetchFromTheMealDB(region, dietary, ingredients, limit = 12) {
+  try {
+    let recipes = [];
+    
+    // If no specific filters, get random recipes from various categories
+    if ((!region || region === 'all') && (!dietary || dietary === 'none') && (!ingredients || ingredients.length === 0)) {
+      console.log('Fetching random recipes from TheMealDB...');
+      try {
+        const randomCount = Math.min(limit, 12);
+        const randomRecipes = await Promise.all(
+          Array(randomCount).fill().map(() => 
+            axios.get('https://www.themealdb.com/api/json/v1/1/random.php')
+          )
+        );
+        recipes.push(...randomRecipes.map(r => r.data.meals[0]).filter(r => r !== null));
+        console.log(`Fetched ${recipes.length} random recipes from TheMealDB`);
+      } catch (error) {
+        console.log('TheMealDB random fetch failed:', error.message);
+      }
+    }
+    
+    // Priority 1: Fetch by region if specified
+    if (recipes.length === 0 && region && region !== 'all') {
+      try {
+        const response = await axios.get(
+          `https://www.themealdb.com/api/json/v1/1/filter.php?a=${region}`
+        );
+        
+        if (response.data.meals) {
+          const shuffled = response.data.meals.sort(() => 0.5 - Math.random());
+          const selected = shuffled.slice(0, Math.min(limit * 2, response.data.meals.length));
+            
+            const detailedRecipes = await Promise.all(
+              selected.map(async (meal) => {
+                try {
+                  const detailResponse = await axios.get(
+                    `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`
+                  );
+                  return detailResponse.data.meals[0];
+                } catch (err) {
+                  return null;
+                }
+              })
+            );
+            
+            recipes.push(...detailedRecipes.filter(r => r !== null));
+        }
+      } catch (error) {
+        console.log('TheMealDB region search failed:', error.message);
+      }
+    }
+    
+    // Priority 2: Try by category if dietary is set
+    if (recipes.length === 0 && dietary && dietary !== 'none') {
+      const categoryMap = {
+        'vegetarian': 'Vegetarian',
+        'vegan': 'Vegan', 
+        'seafood': 'Seafood',
+      };
+      
+      const category = categoryMap[dietary];
+      if (category) {
+        try {
+          const response = await axios.get(
+            `https://www.themealdb.com/api/json/v1/1/filter.php?c=${category}`
+          );
+          
+          if (response.data.meals) {
+            const shuffled = response.data.meals.sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, Math.min(limit, response.data.meals.length));
+            
+            const detailedRecipes = await Promise.all(
+              selected.map(async (meal) => {
+                try {
+                const detailResponse = await axios.get(
+                  `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`
+                );
+                return detailResponse.data.meals[0];
+                } catch (err) {
+                  return null;
+                }
+              })
+            );
+            
+            recipes.push(...detailedRecipes.filter(r => r !== null));
+          }
+        } catch (error) {
+          console.log('TheMealDB category search failed:', error.message);
+        }
+      }
+    }
+    
+    // Filter by dietary preferences if we have recipes
+    if (dietary && dietary !== 'none' && recipes.length > 0) {
+      recipes = recipes.filter(recipe => {
+        const ingredients = Object.keys(recipe)
+          .filter(key => key.startsWith('strIngredient') && recipe[key])
+          .map(key => recipe[key].toLowerCase())
+          .join(' ');
+        const name = recipe.strMeal?.toLowerCase() || '';
+        const category = recipe.strCategory?.toLowerCase() || '';
+
+        switch(dietary) {
+          case 'vegetarian':
+            return !ingredients.includes('chicken') && !ingredients.includes('beef') && 
+                   !ingredients.includes('pork') && !ingredients.includes('lamb');
+          case 'vegan':
+            return !ingredients.includes('chicken') && !ingredients.includes('beef') && 
+                   !ingredients.includes('cheese') && !ingredients.includes('milk') && 
+                   !ingredients.includes('egg');
+          case 'paleo':
+            const hasProtein = ingredients.includes('chicken') || ingredients.includes('beef') || 
+                              ingredients.includes('fish');
+            const hasGrains = ingredients.includes('pasta') || ingredients.includes('rice') || 
+                             ingredients.includes('bread');
+            return hasProtein && !hasGrains;
+          case 'keto':
+            const hasProteinKeto = ingredients.includes('chicken') || ingredients.includes('beef') || 
+                                  ingredients.includes('fish');
+            const hasCarbs = ingredients.includes('pasta') || ingredients.includes('rice') || 
+                            ingredients.includes('potato');
+            return hasProteinKeto && !hasCarbs;
+          case 'seafood':
+            return category.includes('seafood') || ingredients.includes('fish') || 
+                   ingredients.includes('salmon') || ingredients.includes('shrimp');
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Convert TheMealDB format to our standard format
+    return recipes.slice(0, limit).map(recipe => ({
+      idMeal: recipe.idMeal,
+      strMeal: recipe.strMeal,
+      strCategory: recipe.strCategory,
+      strArea: recipe.strArea,
+      strMealThumb: recipe.strMealThumb,
+      strInstructions: recipe.strInstructions,
+      strYoutube: recipe.strYoutube || '',
+      strTags: recipe.strTags || '',
+      strSource: 'TheMealDB',
+      strSourceUrl: recipe.strSource || '',
+      _ingredientLines: Object.keys(recipe)
+        .filter(key => key.startsWith('strIngredient') && recipe[key])
+        .map((key, index) => {
+          const measure = recipe[`strMeasure${index + 1}`] || '';
+          const ingredient = recipe[key];
+          return `${measure} ${ingredient}`.trim();
+        }),
+    }));
+          } catch (error) {
+    console.error('TheMealDB fallback error:', error.message);
+            return [];
+          }
+}
+
+// Helper function to fetch recipes from Edamam Recipe API
+async function fetchEdamamRecipes(query, cuisine, diet, limit = 20) {
+  // Use separate Recipe API credentials if available, otherwise try main credentials
+  const appId = EDAMAM_RECIPE_APP_ID || EDAMAM_APP_ID;
+  const appKey = EDAMAM_RECIPE_APP_KEY || EDAMAM_APP_KEY;
+  
+  if (!appId || !appKey) {
+    console.log('Edamam Recipe API credentials not configured, skipping');
     return [];
   }
 
   try {
-    // Use random offset for pagination to get different results
-    const offset = randomOffset > 0 ? randomOffset : Math.floor(Math.random() * 50);
-    
     const params = {
       type: 'public',
-      app_id: EDAMAM_APP_ID,
-      app_key: EDAMAM_APP_KEY,
+      app_id: appId,
+      app_key: appKey,
       q: query || 'recipe',
-      random: true,
-      from: offset,
-      to: offset + limit,
+      to: limit,
     };
 
-    if (cuisineType) {
-      params.cuisineType = cuisineType;
+    // Map cuisine to Edamam cuisine types
+    if (cuisine) {
+      const cuisineMap = {
+        'indian': 'Indian',
+        'chinese': 'Chinese',
+        'japanese': 'Japanese',
+        'italian': 'Italian',
+        'french': 'French',
+        'mexican': 'Mexican',
+        'thai': 'Thai',
+        'greek': 'Greek',
+        'american': 'American',
+        'british': 'British',
+      };
+      params.cuisineType = cuisineMap[cuisine.toLowerCase()] || cuisine;
     }
 
-    if (dietLabel) {
-      // Edamam diet labels: balanced, high-fiber, high-protein, low-carb, low-fat, low-sodium
-      // Edamam health labels: vegan, vegetarian, paleo, dairy-free, gluten-free, wheat-free, etc.
-      const edamamDiet = {
-        'vegetarian': { health: 'vegetarian' },
-        'vegan': { health: 'vegan' },
-        'keto': { diet: 'low-carb', health: 'keto-friendly' },
-        'paleo': { health: 'paleo' },
-        'seafood': { health: 'pescatarian' },
-      }[dietLabel];
-
-      if (edamamDiet?.diet) params.diet = edamamDiet.diet;
-      if (edamamDiet?.health) params.health = edamamDiet.health;
+    // Map diet to Edamam health labels
+    if (diet) {
+      const dietMap = {
+        'vegetarian': 'vegetarian',
+        'vegan': 'vegan',
+        'paleo': 'paleo',
+        'keto': 'keto-friendly',
+        'pescatarian': 'pescatarian',
+      };
+      params.health = dietMap[diet.toLowerCase()] || diet;
     }
 
-    console.log(`Fetching from Edamam: ${cuisineType || 'any'} cuisine, ${dietLabel || 'any'} diet`);
+    console.log(`Fetching from Edamam Recipe API: ${cuisine || 'any'} cuisine, ${diet || 'any'} diet`);
     
     const response = await axios.get('https://api.edamam.com/api/recipes/v2', { params });
 
     if (response.data.hits && response.data.hits.length > 0) {
-      const recipes = response.data.hits.map(hit => {
-        // Normalize cuisine type to match our expected format
-        let area = hit.recipe.cuisineType?.[0] || cuisineType || 'International';
+      console.log(`Found ${response.data.hits.length} recipes from Edamam (total: ${response.data.count})`);
+
+      // Convert Edamam format to our standard format
+      const formattedRecipes = response.data.hits.map(hit => {
+        const recipe = hit.recipe;
         
-        // Capitalize first letter to match TheMealDB format
+        // Extract area/cuisine
+        let area = recipe.cuisineType?.[0] || cuisine || 'International';
         area = area.charAt(0).toUpperCase() + area.slice(1).toLowerCase();
         
+        // Extract ingredients
+        const ingredientLines = recipe.ingredientLines || [];
+        
+        // Create instruction text
+        const instructions = recipe.url ? 
+          `View full recipe at: ${recipe.url}\n\nIngredients:\n${ingredientLines.join('\n')}` : 
+          ingredientLines.join('\n');
+
         return {
-          idMeal: hit.recipe.uri.split('#')[1] || hit.recipe.label.replace(/\s/g, '_'),
-          strMeal: hit.recipe.label,
-          strCategory: hit.recipe.dishType?.[0] || 'Main course',
+          idMeal: `edamam_${recipe.uri.split('#recipe_')[1] || Math.random().toString(36).substr(2, 9)}`,
+          strMeal: recipe.label,
+          strCategory: recipe.dishType?.[0] || recipe.mealType?.[0] || 'Main course',
           strArea: area,
-          strMealThumb: hit.recipe.image,
-          strInstructions: hit.recipe.url ? `View full recipe at: ${hit.recipe.url}\n\n` + (hit.recipe.ingredientLines?.join('\n') || '') : hit.recipe.ingredientLines?.join('\n') || 'No instructions available',
+          strMealThumb: recipe.image,
+          strInstructions: stripHtml(instructions),
           strYoutube: '',
-          strTags: hit.recipe.dietLabels?.join(',') || '',
+          strTags: recipe.healthLabels?.join(',') || '',
           strSource: 'Edamam',
-          strImageSource: hit.recipe.source,
-          strIngredient1: hit.recipe.ingredientLines?.[0] || '',
-          strIngredient2: hit.recipe.ingredientLines?.[1] || '',
-          strIngredient3: hit.recipe.ingredientLines?.[2] || '',
-          strIngredient4: hit.recipe.ingredientLines?.[3] || '',
-          strIngredient5: hit.recipe.ingredientLines?.[4] || '',
-          strMeasure1: '',
-          strMeasure2: '',
-          strMeasure3: '',
-          strMeasure4: '',
-          strMeasure5: '',
-          // Store original ingredient lines for better matching
-          _ingredientLines: hit.recipe.ingredientLines || [],
+          strSourceUrl: recipe.url,
+          strImageSource: recipe.source,
+          _ingredientLines: ingredientLines,
+          _edamamData: {
+            calories: Math.round(recipe.calories),
+            healthScore: Math.round((recipe.healthLabels?.length || 5) * 10), // Rough estimate
+          }
         };
       });
 
-      console.log(`Fetched ${recipes.length} recipes from Edamam`);
-      return recipes;
+      return formattedRecipes;
     }
 
     return [];
   } catch (error) {
-    console.error('Edamam API error:', error.message);
+    console.error('Edamam Recipe API error:', error.message);
+    if (error.response) {
+      console.error('Error details:', error.response.data);
+    }
     return [];
   }
 }
@@ -105,222 +307,58 @@ export const handler = async (event) => {
 
   try {
     const { ingredients, dietary, region, limit = 12, excludedIds = [] } = JSON.parse(event.body || '{}');
-    console.log(`Request: ${limit} recipes, excluding ${excludedIds.length} already shown`);
+    console.log(`\n=== NEW REQUEST ===`);
+    console.log(`Limit: ${limit} recipes, Excluded: ${excludedIds.length} already shown`);
+    console.log(`Filters: region=${region || 'none'}, dietary=${dietary || 'none'}, ingredients=${ingredients?.join(', ') || 'none'}`);
 
-    // Fetch from TheMealDB (free API)
     let recipes = [];
     
-    // When filters are combined or we have exclusions, fetch MORE recipes to ensure enough results
-    const hasMultipleFilters = (dietary && dietary !== 'none') && region;
-    const hasExclusions = excludedIds.length > 0;
+    // PRIMARY SOURCE: Spoonacular API (380,000+ recipes)
+    // Calculate offset for pagination based on excluded IDs
+    const offset = Math.floor(excludedIds.length / limit) * limit;
     
-    // Aggressive fetching for Load More with exclusions
-    let fetchLimit = limit;
-    if (hasMultipleFilters && hasExclusions) {
-      fetchLimit = limit * 5; // 5x for both filters + exclusions
-    } else if (hasMultipleFilters) {
-      fetchLimit = limit * 3; // 3x for multiple filters
-    } else if (hasExclusions) {
-      fetchLimit = limit * 3; // 3x when loading more (has exclusions)
+    // Build search query from ingredients
+    const searchQuery = ingredients && ingredients.length > 0 ? ingredients.join(' ') : null;
+    
+    // PRIMARY: Fetch from TheMealDB (free, unlimited)
+    console.log(`Fetching from TheMealDB (primary source)...`);
+    const mealDBRecipes = await fetchFromTheMealDB(region, dietary, ingredients, limit * 2);
+    
+    if (mealDBRecipes.length > 0) {
+      recipes.push(...mealDBRecipes);
+      console.log(`✅ Fetched ${mealDBRecipes.length} recipes from TheMealDB`);
     }
     
-    console.log(`Fetch strategy: fetchLimit=${fetchLimit}, hasMultipleFilters=${hasMultipleFilters}, excludedIds=${excludedIds.length}`);
-    
-    // Priority 1: Fetch by region/area if specified
-    if (region && (!ingredients || ingredients.length === 0)) {
-      try {
-        // Special handling for Indian cuisine - fetch from multiple sources
-        if (region.toLowerCase() === 'indian') {
-          console.log('Fetching Indian recipes from multiple sources...');
-          
-          // Source 1: Indian Area
-          const areaResponse = await axios.get(
-            'https://www.themealdb.com/api/json/v1/1/filter.php?a=Indian'
-          );
-          
-          if (areaResponse.data.meals) {
-            const allIndianMeals = [...areaResponse.data.meals];
-            
-            // Shuffle and get details for many recipes
-            const shuffled = allIndianMeals.sort(() => 0.5 - Math.random());
-            const selected = shuffled.slice(0, Math.min(fetchLimit * 2, allIndianMeals.length));
-            
-            const detailedRecipes = await Promise.all(
-              selected.map(async (meal) => {
-                try {
-                  const detailResponse = await axios.get(
-                    `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`
-                  );
-                  return detailResponse.data.meals[0];
-                } catch (err) {
-                  return null;
-                }
-              })
-            );
-            
-            recipes.push(...detailedRecipes.filter(r => r !== null));
-            console.log(`Fetched ${recipes.length} Indian recipes`);
-          }
-        } else {
-          // Standard region handling for other cuisines
-          const response = await axios.get(
-            `https://www.themealdb.com/api/json/v1/1/filter.php?a=${region}`
-          );
-          
-          if (response.data.meals) {
-            const shuffled = response.data.meals.sort(() => 0.5 - Math.random());
-            const selected = shuffled.slice(0, Math.min(fetchLimit, response.data.meals.length));
-            
-            const detailedRecipes = await Promise.all(
-              selected.map(async (meal) => {
-                const detailResponse = await axios.get(
-                  `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`
-                );
-                return detailResponse.data.meals[0];
-              })
-            );
-            recipes.push(...detailedRecipes);
-          }
-        }
-      } catch (error) {
-        console.log('Region search failed, falling back:', error.message);
-      }
-    }
-    
-    // Priority 2: If dietary preference is set, try to fetch by category
-    if (recipes.length === 0 && dietary && dietary !== 'none' && (!ingredients || ingredients.length === 0)) {
-      const categoryMap = {
-        'vegetarian': 'Vegetarian',
-        'vegan': 'Vegan', 
-        'seafood': 'Seafood',
-      };
+    // SUPPLEMENTARY 1: Try Edamam Recipe API if TheMealDB doesn't have enough results
+    if (recipes.length < limit && EDAMAM_APP_ID && EDAMAM_APP_KEY) {
+      console.log(`TheMealDB returned ${recipes.length}/${limit} recipes. Trying Edamam Recipe API for more...`);
       
-      const category = categoryMap[dietary];
-      if (category) {
-        try {
-          const response = await axios.get(
-            `https://www.themealdb.com/api/json/v1/1/filter.php?c=${category}`
-          );
-          
-          if (response.data.meals) {
-            // Get detailed info for random recipes from category
-            const shuffled = response.data.meals.sort(() => 0.5 - Math.random());
-            const selected = shuffled.slice(0, Math.min(fetchLimit, response.data.meals.length));
-            
-            const detailedRecipes = await Promise.all(
-              selected.map(async (meal) => {
-                const detailResponse = await axios.get(
-                  `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`
-                );
-                return detailResponse.data.meals[0];
-              })
-            );
-            recipes.push(...detailedRecipes);
-          }
-        } catch (error) {
-          console.log('Category search failed, falling back to random');
-        }
-      }
-    }
-    
-    // If no recipes yet, search by ingredient or get random
-    if (recipes.length === 0) {
-      if (ingredients && ingredients.length > 0) {
-        console.log(`Searching for recipes with ingredients: ${ingredients.join(', ')}`);
-        
-        // Search TheMealDB for EACH ingredient and combine results
-        const ingredientSearchPromises = ingredients.map(async (ingredient) => {
-          try {
-            const response = await axios.get(
-              `https://www.themealdb.com/api/json/v1/1/filter.php?i=${ingredient}`
-            );
-            
-            if (response.data.meals) {
-              console.log(`Found ${response.data.meals.length} recipes with "${ingredient}"`);
-              return response.data.meals.slice(0, 10); // Limit per ingredient
-            }
-            return [];
-          } catch (error) {
-            console.log(`Search failed for ingredient "${ingredient}":`, error.message);
-            return [];
-          }
-        });
-        
-        const ingredientResults = await Promise.all(ingredientSearchPromises);
-        const allMeals = ingredientResults.flat();
-        
-        // Remove duplicates by ID
-        const uniqueMeals = Array.from(
-          new Map(allMeals.map(meal => [meal.idMeal, meal])).values()
+      try {
+        const edamamRecipes = await fetchEdamamRecipes(
+          searchQuery || (region && region !== 'all' ? region : 'recipe'),
+          region && region !== 'all' ? region : null,
+          dietary && dietary !== 'none' ? dietary : null,
+          limit - recipes.length // Only fetch what we need
         );
         
-        console.log(`Total unique recipes found from ingredients: ${uniqueMeals.length}`);
-        
-        if (uniqueMeals.length > 0) {
-          // Get detailed info for each recipe
-          const detailedRecipes = await Promise.all(
-            uniqueMeals.slice(0, Math.min(fetchLimit, uniqueMeals.length)).map(async (meal) => {
-              try {
-                const detailResponse = await axios.get(
-                  `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`
-                );
-                return detailResponse.data.meals[0];
-              } catch (error) {
-                return null;
-              }
-            })
-          );
-          recipes.push(...detailedRecipes.filter(r => r !== null));
+        if (edamamRecipes.length > 0) {
+          recipes.push(...edamamRecipes);
+          console.log(`✅ Added ${edamamRecipes.length} recipes from Edamam, total: ${recipes.length}`);
         }
-        
-        // Also search Edamam with ingredients for more results
-        if (EDAMAM_APP_ID && EDAMAM_APP_KEY) {
-          const ingredientQuery = ingredients.join(' ');
-          
-          // Map region to Edamam cuisine type
-          const cuisineMap = {
-            'indian': 'Indian',
-            'chinese': 'Chinese',
-            'japanese': 'Japanese',
-            'italian': 'Italian',
-            'french': 'French',
-            'mexican': 'Mexican',
-            'thai': 'Thai',
-            'greek': 'Greek',
-            'american': 'American',
-            'british': 'British',
-          };
-          
-          const edamamRecipes = await fetchEdamamRecipes(
-            ingredientQuery,
-            region ? cuisineMap[region.toLowerCase()] : null,
-            dietary !== 'none' ? dietary : null,
-            20
-          );
-          
-          if (edamamRecipes.length > 0) {
-            console.log(`Found ${edamamRecipes.length} additional recipes from Edamam with ingredients`);
-            recipes.push(...edamamRecipes);
-          }
-        }
-        
-        // Score recipes based on how many input ingredients they contain
-        if (recipes.length > 0 && ingredients.length > 0) {
+      } catch (error) {
+        console.log(`⚠️ Edamam Recipe API failed (skipping): ${error.message}`);
+        // Continue with what we have
+      }
+    }
+    
+    // That's it! Only TheMealDB + Edamam (no Spoonacular)
+
+    // Score recipes based on ingredient matching if user searched with ingredients
+    if (ingredients && ingredients.length > 0 && recipes.length > 0) {
           console.log(`\n=== INGREDIENT MATCHING ===`);
           const scoredRecipes = recipes.map(recipe => {
             // Get all ingredients from the recipe
-            let recipeIngredients = [];
-            
-            if (recipe._ingredientLines) {
-              // Edamam format
-              recipeIngredients = recipe._ingredientLines.join(' ').toLowerCase();
-            } else {
-              // TheMealDB format
-              recipeIngredients = Object.keys(recipe)
-                .filter(key => key.startsWith('strIngredient') && recipe[key])
-                .map(key => recipe[key].toLowerCase())
-                .join(' ');
-            }
+        const recipeIngredientsText = recipe._ingredientLines?.join(' ').toLowerCase() || '';
             
             // Count how many user ingredients are in this recipe
             let matchCount = 0;
@@ -328,7 +366,7 @@ export const handler = async (event) => {
             
             ingredients.forEach(userIngredient => {
               const ing = userIngredient.toLowerCase();
-              if (recipeIngredients.includes(ing)) {
+          if (recipeIngredientsText.includes(ing)) {
                 matchCount++;
                 matchedIngredients.push(userIngredient);
               }
@@ -349,353 +387,19 @@ export const handler = async (event) => {
           // Replace recipes with sorted ones
           recipes = scoredRecipes.map(item => item.recipe);
           
+      if (scoredRecipes.length > 0) {
           const topMatch = scoredRecipes[0];
           console.log(`Top match: ${topMatch.recipe.strMeal} with ${topMatch.matchCount}/${ingredients.length} ingredients`);
-          console.log(`===========================\n`);
-        }
-        
-        console.log(`Total recipes after ingredient search: ${recipes.length}`);
-      } else {
-        // Get LIMITED random recipes (max 12 to avoid rate limits)
-        const randomCount = Math.min(fetchLimit, 12);
-        console.log(`Fetching ${randomCount} random recipes`);
-        
-        try {
-          const randomRecipes = await Promise.all(
-            Array(randomCount).fill().map(() => 
-              axios.get('https://www.themealdb.com/api/json/v1/1/random.php')
-            )
-          );
-          recipes.push(...randomRecipes.map(r => r.data.meals[0]));
-        } catch (error) {
-          console.log('TheMealDB random fetch failed:', error.message);
-          // Continue with whatever recipes we have
-        }
       }
-    }
-    
-    // Supplement with Edamam recipes, especially for Indian cuisine or when we need more
-    const shouldUseEdamam = (region && region.toLowerCase() === 'indian') || 
-                            recipes.length < fetchLimit || 
-                            hasExclusions; // Always use Edamam when loading more
-    
-    if (shouldUseEdamam) {
-      console.log(`Supplementing with Edamam recipes...`);
-      
-      // Map region names to Edamam cuisine types
-      const cuisineTypeMap = {
-        'indian': 'Indian',
-        'chinese': 'Chinese',
-        'japanese': 'Japanese',
-        'italian': 'Italian',
-        'french': 'French',
-        'mexican': 'Mexican',
-        'thai': 'Thai',
-        'greek': 'Greek',
-        'american': 'American',
-        'british': 'British',
-        'spanish': 'French', // Edamam doesn't have Spanish, use French as Mediterranean
-        'moroccan': 'Middle Eastern',
-        'turkish': 'Middle Eastern',
-      };
-      
-      const edamamCuisine = region ? cuisineTypeMap[region.toLowerCase()] : null;
-      
-      // Fetch MORE from Edamam when loading more (Edamam is now primary source for Load More)
-      const edamamFetchCount = hasExclusions ? 40 : 25; // Increased to compensate for reduced TheMealDB
-      
-      // Use excludedIds count to determine pagination offset for variety
-      const edamamOffset = Math.floor(excludedIds.length / 10) * 20;
-      
-      const edamamRecipes = await fetchEdamamRecipes(
-        dietary === 'seafood' ? 'seafood' : (region ? region : 'recipe'),
-        edamamCuisine,
-        dietary !== 'none' ? dietary : null,
-        edamamFetchCount,
-        edamamOffset // Pass offset for pagination
-      );
-      
-      if (edamamRecipes.length > 0) {
-        recipes.push(...edamamRecipes);
-        console.log(`Added ${edamamRecipes.length} recipes from Edamam, total now: ${recipes.length}`);
-      }
-    }
-    
-    // If we STILL have very few recipes and filters are active, try to get more
-    if (recipes.length < limit && (region || (dietary && dietary !== 'none'))) {
-      console.log(`Only ${recipes.length} recipes found with filters, fetching more from TheMealDB...`);
-      
-      // For Indian region, try to get ALL Indian recipes from TheMealDB
-      if (region && region.toLowerCase() === 'indian') {
-        try {
-          const allIndianResponse = await axios.get(
-            'https://www.themealdb.com/api/json/v1/1/filter.php?a=Indian'
-          );
-          
-          if (allIndianResponse.data.meals) {
-            // Get recipes we don't already have
-            const existingIds = new Set(recipes.map(r => r.idMeal));
-            const newMeals = allIndianResponse.data.meals.filter(m => !existingIds.has(m.idMeal));
-            
-            if (newMeals.length > 0) {
-              const shuffled = newMeals.sort(() => 0.5 - Math.random());
-              const needed = Math.min(limit * 2, shuffled.length);
-              
-              const moreRecipes = await Promise.all(
-                shuffled.slice(0, needed).map(async (meal) => {
-                  try {
-                    const detailResponse = await axios.get(
-                      `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`
-                    );
-                    return detailResponse.data.meals[0];
-                  } catch (err) {
-                    return null;
-                  }
-                })
-              );
-              
-              recipes.push(...moreRecipes.filter(r => r !== null));
-              console.log(`Added more Indian recipes, total now: ${recipes.length}`);
-            }
-          }
-        } catch (error) {
-          console.log('Failed to fetch additional Indian recipes:', error.message);
-        }
-      } else {
-        // For other regions, get LIMITED random recipes (avoid rate limits)
-        const additionalCount = Math.min(limit - recipes.length, 10); // Max 10 to avoid rate limits
-        
-        if (additionalCount > 0) {
-          console.log(`Fetching ${additionalCount} random recipes as fallback`);
-          try {
-            const moreRecipes = await Promise.all(
-              Array(additionalCount).fill().map(() => 
-                axios.get('https://www.themealdb.com/api/json/v1/1/random.php')
-              )
-            );
-            recipes.push(...moreRecipes.map(r => r.data.meals[0]));
-          } catch (error) {
-            console.log('TheMealDB random fetch failed (likely rate limit), continuing with existing recipes');
-          }
-        }
-      }
-    }
-
-    // Filter by region if specified (STRICT matching)
-    if (region && recipes.length > 0) {
-      const beforeRegionFilter = recipes.length;
-      recipes = recipes.filter(recipe => {
-        const recipeArea = recipe.strArea?.toLowerCase() || '';
-        const targetRegion = region.toLowerCase();
-        
-        // Log mismatches for debugging
-        if (recipeArea && recipeArea !== targetRegion) {
-          console.log(`Filtering out: ${recipe.strMeal} (${recipeArea} !== ${targetRegion})`);
-        }
-        
-        return recipeArea === targetRegion;
-      });
-      console.log(`Region filter (${region}): ${beforeRegionFilter} → ${recipes.length} recipes`);
-      
-      // If too few recipes after strict filtering, log warning
-      if (recipes.length < limit / 2) {
-        console.log(`⚠️ Warning: Only ${recipes.length} recipes match ${region} exactly`);
-      }
-    }
-
-    // Filter by dietary preferences with RELAXED matching to get more results
-    let filteredRecipes = recipes;
-    const initialRecipeCount = recipes.length;
-    
-    if (dietary && dietary !== 'none') {
-      filteredRecipes = recipes.filter(recipe => {
-        const category = recipe.strCategory?.toLowerCase() || '';
-        const name = recipe.strMeal?.toLowerCase() || '';
-        const area = recipe.strArea?.toLowerCase() || '';
-        
-        // Handle both TheMealDB and Edamam ingredient formats
-        let ingredients = '';
-        if (recipe._ingredientLines) {
-          // Edamam format
-          ingredients = recipe._ingredientLines.join(' ').toLowerCase();
-        } else {
-          // TheMealDB format
-          ingredients = Object.keys(recipe)
-            .filter(key => key.startsWith('strIngredient') && recipe[key])
-            .map(key => recipe[key].toLowerCase())
-            .join(' ');
-        }
-
-        switch(dietary) {
-          case 'vegetarian':
-            return category.includes('vegetarian') || 
-                   (!ingredients.includes('chicken') && !ingredients.includes('beef') && 
-                    !ingredients.includes('pork') && !ingredients.includes('lamb') &&
-                    !ingredients.includes('meat') && !name.includes('chicken') &&
-                    !name.includes('beef'));
-          
-          case 'vegan':
-            return category.includes('vegan') || 
-                   ((!ingredients.includes('chicken') && !ingredients.includes('beef') && 
-                     !ingredients.includes('pork') && !ingredients.includes('fish')) &&
-                    (!ingredients.includes('cheese') && !ingredients.includes('milk') && 
-                     !ingredients.includes('egg') && !ingredients.includes('butter')));
-          
-          case 'keto':
-            const hasProtein = ingredients.includes('chicken') || ingredients.includes('beef') || 
-                              ingredients.includes('fish') || ingredients.includes('egg') ||
-                              category.includes('beef') || category.includes('chicken') || 
-                              category.includes('seafood');
-            const hasCarbs = ingredients.includes('pasta') || ingredients.includes('rice') || 
-                            ingredients.includes('bread') || ingredients.includes('potato') ||
-                            name.includes('pasta') || name.includes('rice');
-            return hasProtein && !hasCarbs;
-          
-          case 'paleo':
-            const hasProteinPaleo = ingredients.includes('chicken') || ingredients.includes('beef') || 
-                                   ingredients.includes('fish') || category.includes('chicken') ||
-                                   category.includes('beef') || category.includes('seafood');
-            const hasGrains = ingredients.includes('pasta') || ingredients.includes('rice') ||
-                             ingredients.includes('bread');
-            return hasProteinPaleo && !hasGrains;
-          
-          case 'seafood':
-            // STRICT seafood check - must have actual seafood ingredients or category
-            const hasSeafoodCategory = category.includes('seafood') || category.includes('fish');
-            
-            // Check for fish types
-            const hasFish = ingredients.includes('fish') || ingredients.includes('salmon') ||
-                   ingredients.includes('tuna') || ingredients.includes('cod') ||
-                   ingredients.includes('haddock') || ingredients.includes('mackerel') ||
-                   ingredients.includes('trout') || ingredients.includes('halibut') ||
-                   ingredients.includes('tilapia') || ingredients.includes('sardine') ||
-                   ingredients.includes('anchov') || ingredients.includes('herring') ||
-                   ingredients.includes('bass') || ingredients.includes('snapper');
-            
-            // Check for shellfish
-            const hasShellfish = ingredients.includes('shrimp') || ingredients.includes('prawn') ||
-                   ingredients.includes('crab') || ingredients.includes('lobster') ||
-                   ingredients.includes('clam') || ingredients.includes('mussel') ||
-                   ingredients.includes('oyster') || ingredients.includes('scallop') ||
-                   ingredients.includes('squid') || ingredients.includes('octopus') ||
-                   ingredients.includes('crawfish') || ingredients.includes('crayfish');
-            
-            // Check name for seafood references
-            const hasSeafoodName = name.includes('fish') || name.includes('seafood') ||
-                   name.includes('salmon') || name.includes('tuna') ||
-                   name.includes('prawn') || name.includes('shrimp') ||
-                   name.includes('crab') || name.includes('lobster');
-            
-            // Must have at least one seafood indicator
-            const isActualSeafood = hasSeafoodCategory || hasFish || hasShellfish || hasSeafoodName;
-            
-            // IMPORTANT: Exclude vegetarian/vegan dishes even if they mention "fish sauce" etc
-            const isVegetarian = category.includes('vegetarian') || category.includes('vegan');
-            
-            return isActualSeafood && !isVegetarian;
-          
-          default:
-            return true;
-        }
-      });
-    }
-    
-    console.log(`Dietary filter (${dietary}): ${initialRecipeCount} → ${filteredRecipes.length} recipes`);
-    
-    // If filter resulted in too few recipes with BOTH filters, try ONLY dietary filter (ignore region)
-    if (filteredRecipes.length < limit / 2 && hasMultipleFilters) {
-      console.log(`Too few results with both filters (${filteredRecipes.length}/${limit}), trying dietary filter only...`);
-      
-      // Get all available recipes (re-fetch from the original pool before region filter)
-      let allRecipes = recipes;
-      
-      // Apply ONLY dietary filter to all recipes (ignore region restriction)
-      const dietaryOnlyFiltered = allRecipes.filter(recipe => {
-        const category = recipe.strCategory?.toLowerCase() || '';
-        const name = recipe.strMeal?.toLowerCase() || '';
-        const area = recipe.strArea?.toLowerCase() || '';
-        
-        // Handle both TheMealDB and Edamam ingredient formats
-        let ingredients = '';
-        if (recipe._ingredientLines) {
-          ingredients = recipe._ingredientLines.join(' ').toLowerCase();
-        } else {
-          ingredients = Object.keys(recipe)
-            .filter(key => key.startsWith('strIngredient') && recipe[key])
-            .map(key => recipe[key].toLowerCase())
-            .join(' ');
-        }
-
-        switch(dietary) {
-          case 'vegetarian':
-            return category.includes('vegetarian') || 
-                   (!ingredients.includes('chicken') && !ingredients.includes('beef') && 
-                    !ingredients.includes('pork') && !ingredients.includes('lamb') &&
-                    !ingredients.includes('meat') && !name.includes('chicken') &&
-                    !name.includes('beef'));
-          
-          case 'vegan':
-            return category.includes('vegan') || 
-                   ((!ingredients.includes('chicken') && !ingredients.includes('beef') && 
-                     !ingredients.includes('pork') && !ingredients.includes('fish')) &&
-                    (!ingredients.includes('cheese') && !ingredients.includes('milk') && 
-                     !ingredients.includes('egg') && !ingredients.includes('butter')));
-          
-          case 'keto':
-            const hasProtein = ingredients.includes('chicken') || ingredients.includes('beef') || 
-                              ingredients.includes('fish') || ingredients.includes('egg') ||
-                              category.includes('beef') || category.includes('chicken') || 
-                              category.includes('seafood');
-            const hasCarbs = ingredients.includes('pasta') || ingredients.includes('rice') || 
-                            ingredients.includes('bread') || ingredients.includes('potato') ||
-                            name.includes('pasta') || name.includes('rice');
-            return hasProtein && !hasCarbs;
-          
-          case 'paleo':
-            const hasProteinPaleo = ingredients.includes('chicken') || ingredients.includes('beef') || 
-                                   ingredients.includes('fish') || category.includes('chicken') ||
-                                   category.includes('beef') || category.includes('seafood');
-            const hasGrains = ingredients.includes('pasta') || ingredients.includes('rice') ||
-                             ingredients.includes('bread');
-            return hasProteinPaleo && !hasGrains;
-          
-          case 'seafood':
-            // STRICT seafood check - must have actual seafood
-            const isSeafood = category.includes('seafood') || category.includes('fish') ||
-                   ingredients.includes('fish') || ingredients.includes('salmon') ||
-                   ingredients.includes('tuna') || ingredients.includes('cod') ||
-                   ingredients.includes('haddock') || ingredients.includes('mackerel') ||
-                   ingredients.includes('trout') || ingredients.includes('halibut') ||
-                   ingredients.includes('tilapia') || ingredients.includes('sardine') ||
-                   ingredients.includes('anchov') || ingredients.includes('herring') ||
-                   ingredients.includes('shrimp') || ingredients.includes('prawn') ||
-                   ingredients.includes('crab') || ingredients.includes('lobster') ||
-                   ingredients.includes('clam') || ingredients.includes('mussel') ||
-                   ingredients.includes('oyster') || ingredients.includes('scallop') ||
-                   ingredients.includes('squid') || ingredients.includes('octopus') ||
-                   name.includes('fish') || name.includes('seafood') ||
-                   name.includes('salmon') || name.includes('tuna') ||
-                   name.includes('prawn') || name.includes('shrimp') ||
-                   name.includes('crab') || name.includes('lobster');
-            return isSeafood;
-          
-          default:
-            return true;
-        }
-      });
-      
-      if (dietaryOnlyFiltered.length >= filteredRecipes.length) {
-        console.log(`Found ${dietaryOnlyFiltered.length} recipes matching ${dietary} filter (ignoring region)`);
-        filteredRecipes = dietaryOnlyFiltered;
-      } else {
-        console.log(`Keeping ${filteredRecipes.length} recipes with both filters`);
-      }
+      console.log(`===========================\n`);
     }
     
     // Remove duplicates based on recipe ID
     const uniqueRecipes = Array.from(
-      new Map(filteredRecipes.map(recipe => [recipe.idMeal, recipe])).values()
+      new Map(recipes.map(recipe => [recipe.idMeal, recipe])).values()
     );
+    
+    console.log(`After deduplication: ${uniqueRecipes.length} unique recipes`);
     
     // Filter out recipes that were already shown (excludedIds)
     const notExcludedRecipes = uniqueRecipes.filter(recipe => 
@@ -704,44 +408,27 @@ export const handler = async (event) => {
     
     console.log(`After removing excluded IDs: ${notExcludedRecipes.length} recipes (excluded ${uniqueRecipes.length - notExcludedRecipes.length})`);
     
-    // Take only specified number of best matches
-    filteredRecipes = notExcludedRecipes.slice(0, limit);
+    // Take only specified number
+    const finalRecipes = notExcludedRecipes.slice(0, limit);
     
-    console.log(`\n=== FILTER SUMMARY ===`);
-    console.log(`Region: ${region || 'none'}`);
-    console.log(`Dietary: ${dietary || 'none'}`);
-    console.log(`Excluded IDs: ${excludedIds.length}`);
-    console.log(`Final recipes: ${filteredRecipes.length}/${limit} requested`);
+    console.log(`\n=== FINAL RESULTS ===`);
+    console.log(`Returning ${finalRecipes.length}/${limit} requested recipes`);
     console.log(`======================\n`);
 
-    // Format recipes and add ingredient match info
-    const formattedRecipes = filteredRecipes.map(recipe => {
-      let recipeIngredients = [];
-      
-      if (recipe._ingredientLines) {
-        // Edamam format - ingredient lines
-        recipeIngredients = recipe._ingredientLines.map(line => ({
+    // Format recipes with ingredient details
+    const formattedRecipes = finalRecipes.map(recipe => {
+      // Parse ingredient lines into structured format
+      const recipeIngredients = recipe._ingredientLines?.map(line => ({
           name: line,
           measure: ''
-        }));
-      } else {
-        // TheMealDB format - separate ingredient and measure fields
-        recipeIngredients = Object.keys(recipe)
-          .filter(key => key.startsWith('strIngredient') && recipe[key])
-          .map((key, index) => ({
-            name: recipe[key],
-            measure: recipe[`strMeasure${index + 1}`] || ''
-          }));
-      }
+      })) || [];
       
       // Calculate ingredient match if user searched with ingredients
       let ingredientMatchCount = 0;
       let matchedUserIngredients = [];
       
       if (ingredients && ingredients.length > 0) {
-        const recipeIngredientsText = recipeIngredients
-          .map(ing => ing.name.toLowerCase())
-          .join(' ');
+        const recipeIngredientsText = recipe._ingredientLines?.join(' ').toLowerCase() || '';
         
         ingredients.forEach(userIngredient => {
           const ing = userIngredient.toLowerCase();
@@ -762,17 +449,24 @@ export const handler = async (event) => {
         ingredients: recipeIngredients,
         video: recipe.strYoutube || '',
         tags: recipe.strTags ? recipe.strTags.split(',') : [],
-        source: recipe.strSource || 'TheMealDB',
-        ingredientMatchCount, // How many user ingredients this recipe contains
-        matchedUserIngredients, // Which user ingredients matched
-        totalUserIngredients: ingredients?.length || 0, // Total ingredients user searched for
+        source: recipe.strSource || 'Spoonacular',
+        sourceUrl: recipe.strSourceUrl,
+        ingredientMatchCount,
+        matchedUserIngredients,
+        totalUserIngredients: ingredients?.length || 0,
+        readyInMinutes: recipe._spoonacularData?.readyInMinutes,
+        servings: recipe._spoonacularData?.servings,
+        healthScore: recipe._spoonacularData?.healthScore,
       };
     });
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ recipes: formattedRecipes }),
+      body: JSON.stringify({ 
+        recipes: formattedRecipes,
+        totalAvailable: formattedRecipes.length,
+      }),
     };
   } catch (error) {
     console.error('Error fetching recipes:', error);
@@ -783,4 +477,3 @@ export const handler = async (event) => {
     };
   }
 };
-

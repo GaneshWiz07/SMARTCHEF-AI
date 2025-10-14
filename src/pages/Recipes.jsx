@@ -15,6 +15,7 @@ function Recipes() {
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [canLoadMore, setCanLoadMore] = useState(true);
   const [noMoreRecipes, setNoMoreRecipes] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false); // Track if user has performed any search
 
   // Handler for dietary filter change - clears recipes
   const handleDietaryChange = (newDietary) => {
@@ -22,6 +23,7 @@ function Recipes() {
     setRecipes([]); // Clear recipes when filter changes
     setNoMoreRecipes(false);
     setCanLoadMore(true);
+    setHasSearched(false); // Reset search state when filter changes
   };
 
   // Handler for region filter change - clears recipes
@@ -30,6 +32,7 @@ function Recipes() {
     setRecipes([]); // Clear recipes when filter changes
     setNoMoreRecipes(false);
     setCanLoadMore(true);
+    setHasSearched(false); // Reset search state when filter changes
   };
 
   const searchRecipes = async (append = false) => {
@@ -39,6 +42,7 @@ function Recipes() {
       setLoading(true);
       setRecipes([]);
       setNoMoreRecipes(false);
+      setHasSearched(true); // Mark that a search has been performed
     }
     
     try {
@@ -57,6 +61,8 @@ function Recipes() {
       const newRecipes = response.data.recipes.filter(
         newRecipe => !excludedIds.includes(newRecipe.id)
       );
+      
+      // Fallback is handled silently in the backend
       
       if (append) {
         if (newRecipes.length === 0) {
@@ -91,6 +97,7 @@ function Recipes() {
       setLoading(true);
       setRecipes([]);
       setNoMoreRecipes(false);
+      setHasSearched(true); // Mark that a search has been performed
     }
     
     try {
@@ -109,6 +116,8 @@ function Recipes() {
       const newRecipes = response.data.recipes.filter(
         newRecipe => !excludedIds.includes(newRecipe.id)
       );
+      
+      // Fallback is handled silently in the backend
       
       if (append) {
         if (newRecipes.length === 0) {
@@ -164,12 +173,12 @@ function Recipes() {
 
           <RegionFilter value={region} onChange={handleRegionChange} />
           
-          <div className="flex justify-end">
+          <div className="flex justify-center">
             <button
               onClick={handleRandomRecipes}
-              className="btn-secondary"
+              className="bg-gradient-to-r from-primary-600 to-green-600 hover:from-primary-700 hover:to-green-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
             >
-              🎲 Random Recipes
+              ✨ Generate
             </button>
           </div>
         </div>
@@ -177,9 +186,21 @@ function Recipes() {
 
       {/* Loading State */}
       {loading && (
-        <div className="text-center py-12">
-          <div className="animate-spin text-6xl">🍳</div>
-          <p className="mt-4 text-gray-600">Finding delicious recipes...</p>
+        <div className="text-center py-16">
+          <div className="relative inline-block">
+            {/* Outer spinning ring */}
+            <div className="w-20 h-20 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            {/* Inner icon */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-3xl">
+              🍳
+            </div>
+          </div>
+          <p className="mt-6 text-lg text-gray-700 font-medium">Finding delicious recipes...</p>
+          <div className="mt-3 flex justify-center gap-1">
+            <span className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+            <span className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+            <span className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+          </div>
         </div>
       )}
 
@@ -224,9 +245,16 @@ function Recipes() {
               <button
                 onClick={loadMoreRecipes}
                 disabled={loadingMore}
-                className="btn-primary px-6 sm:px-8 py-3 text-base sm:text-lg"
+                className="btn-primary px-6 sm:px-8 py-3 text-base sm:text-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
               >
-                {loadingMore ? '⏳ Loading More...' : '📚 Load More Recipes'}
+                {loadingMore ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Loading More...
+                  </>
+                ) : (
+                  <>📚 Load More Recipes</>
+                )}
               </button>
               <p className="text-xs sm:text-sm text-gray-500 mt-2">
                 Showing {recipes.length} recipes
@@ -250,43 +278,52 @@ function Recipes() {
         </div>
       )}
 
-      {/* No Results */}
-      {!loading && recipes.length === 0 && ingredients.length > 0 && (
+      {/* No Results - Only show after searching and getting 0 results */}
+      {!loading && recipes.length === 0 && hasSearched && (
         <div className="text-center py-12 glass-card p-8">
           <div className="text-6xl mb-4">😕</div>
           <h3 className="text-xl font-bold mb-2">No recipes found</h3>
-          <p className="text-gray-600 mb-2">
-            No recipes found with: <span className="font-semibold text-green-700">{ingredients.join(', ')}</span>
-          </p>
           <p className="text-gray-600 mb-4">
             {dietary !== 'none' || region !== 'all'
-              ? `Try different ingredients or adjust your filters.`
-              : 'Try different ingredient combinations.'
+              ? `No recipes available for the selected filters. Try adjusting your filters.`
+              : ingredients.length > 0
+              ? `No recipes found with ingredients: ${ingredients.join(', ')}. Try different ingredients.`
+              : 'No recipes available. Please try again later.'
             }
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
-            <button onClick={handleRandomRecipes} className="btn-primary">
-              Try Random Recipes
-            </button>
             {dietary !== 'none' && (
-              <button onClick={() => handleDietaryChange('none')} className="btn-secondary">
+              <button onClick={() => handleDietaryChange('none')} className="btn-primary">
                 Clear Dietary Filter
               </button>
             )}
             {region !== 'all' && (
-              <button onClick={() => handleRegionChange('all')} className="btn-secondary">
+              <button onClick={() => handleRegionChange('all')} className="btn-primary">
                 Clear Region Filter
+              </button>
+            )}
+            {ingredients.length > 0 && (
+              <button onClick={() => setIngredients([])} className="btn-primary">
+                Clear Ingredients
               </button>
             )}
           </div>
         </div>
       )}
 
-      {/* Empty State */}
-      {!loading && recipes.length === 0 && ingredients.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          <div className="text-6xl mb-4">🥘</div>
-          <p className="text-xl">Enter ingredients to find recipes or try random suggestions!</p>
+      {/* Empty State - Show before any search */}
+      {!loading && recipes.length === 0 && !hasSearched && (
+        <div className="text-center py-16 glass-card p-8">
+          <div className="text-7xl mb-4">🔍</div>
+          <h3 className="text-2xl font-bold mb-2">Ready to find recipes?</h3>
+          <p className="text-gray-600 mb-6">
+            Enter ingredients you have or click "✨ Generate" for random suggestions
+          </p>
+          <div className="flex gap-2 justify-center flex-wrap text-sm text-gray-500">
+            <span className="px-3 py-1 bg-gray-100 rounded-full">🥗 50+ Cuisines</span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full">🍽️ Multiple Diets</span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full">📊 Nutrition Info</span>
+          </div>
         </div>
       )}
 
@@ -385,7 +422,11 @@ function RecipeDetailModal({ recipe, onClose }) {
       );
       const response = await axios.post('/.netlify/functions/nutrition', {
         ingredients: ingredientStrings,
-        recipe: { name: recipe.name },
+        recipe: { 
+          id: recipe.id, // Pass recipe ID to fetch nutrition from Spoonacular
+          name: recipe.name,
+          healthScore: recipe.healthScore // Pass Spoonacular health score
+        },
       });
       setNutrition(response.data.nutrition);
     } catch (error) {

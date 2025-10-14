@@ -1,13 +1,14 @@
 # 🤖 ChefMind AI - Your AI-Powered Recipe Assistant
 
-An AI-powered recipe assistant that uses machine learning to create personalized meal plans, match ingredients intelligently, and help you cook smarter, eat healthier, and reduce food waste.
+An AI-powered recipe assistant that uses advanced machine learning to create personalized meal plans, match ingredients intelligently, and help you cook smarter, eat healthier, and reduce food waste. Features a modern, responsive interface with real-time AI meal planning and interactive shopping lists.
 
 ## ✨ Features
 
-### 🤖 **AI-Powered** (Using Hugging Face Mixtral-8x7B)
+### 🤖 **AI-Powered** (Using Groq LLM)
 - **AI Meal Planning**: Generate personalized weekly meal plans using advanced AI
 - **Smart Dietary Analysis**: AI understands your restrictions and preferences
 - **Budget Optimization**: AI creates cost-effective meal plans based on your budget
+- **Raw AI Generation**: No templates - pure AI creativity for unique meal plans
 
 ### 🔐 **Authentication & Security**
 - **Google Sign-In**: Secure authentication with Firebase
@@ -17,22 +18,35 @@ An AI-powered recipe assistant that uses machine learning to create personalized
 - **Smart Recipe Search**: Find recipes based on ingredients you already have
 - **Ingredient Matching**: Recipes ranked by how many of your ingredients they use
 - **50+ Cuisines**: Filter by Indian, Chinese, Japanese, Italian, and more
-- **Dietary Filters**: Vegetarian, vegan, keto, paleo, seafood, and more
-- **10,000+ Recipes**: From TheMealDB and Edamam APIs
+- **Dietary Filters**: Vegetarian, vegan, keto, paleo, pescatarian, and more
+- **30,000+ Recipes**: From TheMealDB + Edamam (free with good rate limits)
+- **Loading States**: Beautiful loading spinners and progress indicators
+- **Smart Fallbacks**: Automatic API switching for maximum recipe coverage
 
 ### 📊 **Nutrition & Health**
 - **Nutrition Tracking**: Detailed nutrition information for every recipe
 - **Calorie Counting**: Track daily intake and meet your health goals
+- **Dynamic Health Scores**: AI-calculated health scores based on ingredients
+- **Accurate Macros**: Real protein, carbs, fat, and vitamin data
 
 ### 📦 **Pantry Management**
 - **Personal Pantry**: Track your own ingredients and expiry dates
 - **Expiry Alerts**: Get notified when items are about to expire
 - **Waste Reduction**: Use ingredients before they go bad
 
+### 🛒 **Interactive Shopping Lists**
+- **Persistent Checkboxes**: Track shopping progress with local storage
+- **User-Specific Storage**: Each user's progress is saved separately
+- **Progress Tracking**: Visual progress bars and completion counters
+- **Smart Controls**: Check all, uncheck all, and individual item toggles
+- **Modern UI**: Beautiful cards with hover effects and animations
+
 ### 📱 **Technology**
 - **Progressive Web App**: Install on mobile devices for offline access
 - **Modern UI**: Beautiful, responsive design with TailwindCSS
 - **Real-time Updates**: Instant recipe search and AI meal generation
+- **Dual View Modes**: Compact table view and detailed card layouts
+- **Responsive Design**: Optimized for mobile, tablet, and desktop
 
 ## 🚀 Tech Stack
 
@@ -50,11 +64,10 @@ An AI-powered recipe assistant that uses machine learning to create personalized
 - **Firebase Authentication** - User management
 
 ### APIs (All Free!)
-- **TheMealDB** - Recipe database
-- **Edamam** - Recipe search & nutrition analysis
-- **Hugging Face** - AI meal plan generation
-- **Open Food Facts** - Nutrition fallback
-- **Firebase Auth** - Google Sign-In
+- **TheMealDB** - 2,000+ recipes (completely free, unlimited requests)
+- **Edamam** - Recipe search + Nutrition analysis (10,000 calls/month free)
+- **Groq** - AI meal plan generation (free, fast, reliable)
+- **Firebase Auth** - Google Sign-In (free)
 
 ## 📦 Installation
 
@@ -84,14 +97,17 @@ Create a `.env` file in the root directory:
 # MongoDB Atlas
 MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/chefmind?retryWrites=true&w=majority
 
-# Edamam API (Free Tier)
-# Sign up at: https://developer.edamam.com/
-EDAMAM_APP_ID=your_app_id
-EDAMAM_APP_KEY=your_app_key
+# Edamam Nutrition Analysis API
+EDAMAM_APP_ID=your_nutrition_app_id
+EDAMAM_APP_KEY=your_nutrition_app_key
 
-# Hugging Face API
-# Get token at: https://huggingface.co/settings/tokens
-HF_API_KEY=your_hugging_face_token
+# Edamam Recipe Search API (separate credentials required)
+EDAMAM_RECIPE_APP_ID=your_recipe_app_id
+EDAMAM_RECIPE_APP_KEY=your_recipe_app_key
+
+# Groq API (Free, Fast, Reliable)
+# Get key at: https://console.groq.com/keys
+GROQ_API_KEY=your_groq_api_key
 
 # Firebase Authentication
 VITE_FIREBASE_API_KEY=your_firebase_api_key
@@ -119,20 +135,23 @@ Quick steps:
 3. Get connection string
 4. Add to `MONGO_URI`
 
-#### Edamam (Free Tier - 10,000 calls/month)
+#### Edamam (Free Tier - 10,000 calls/month) - Required
 1. Sign up at [Edamam Developer](https://developer.edamam.com/)
-2. Choose "Nutrition Analysis API"
-3. Get App ID and App Key
-4. Add to `.env`
+2. Create **TWO** applications:
+   - **Recipe Search API** (for finding recipes)
+   - **Nutrition Analysis API** (for nutrition data)
+3. Get App ID and App Key for each
+4. Add to `.env`:
+   - `EDAMAM_RECIPE_APP_ID` and `EDAMAM_RECIPE_APP_KEY` (Recipe Search)
+   - `EDAMAM_APP_ID` and `EDAMAM_APP_KEY` (Nutrition Analysis)
 
-#### Hugging Face (Free)
-1. Create account at [Hugging Face](https://huggingface.co/)
-2. Go to Settings → Access Tokens
-3. Create new token
-4. Add to `HF_API_KEY`
+**Important:** Edamam requires separate credentials for Recipe Search vs Nutrition Analysis
 
-#### TheMealDB & Open Food Facts
-- No API keys needed! Completely free.
+#### Groq (Free) - Required
+1. Create account at [Groq Console](https://console.groq.com/)
+2. Go to API Keys section
+3. Create new API key
+4. Add to `GROQ_API_KEY`
 
 ## 🏃 Running Locally
 
@@ -176,11 +195,13 @@ Use this only for UI/styling work. Functions won't be available.
 
 3. **Set Environment Variables**
    - Go to Site settings → Environment variables
-   - Add all variables from `.env`:
+   - Add required variables from `.env`:
      - `MONGO_URI`
-     - `EDAMAM_APP_ID`
-     - `EDAMAM_APP_KEY`
-     - `HF_API_KEY`
+     - `EDAMAM_APP_ID` (Nutrition)
+     - `EDAMAM_APP_KEY` (Nutrition)
+     - `EDAMAM_RECIPE_APP_ID` (Recipe Search)
+     - `EDAMAM_RECIPE_APP_KEY` (Recipe Search)
+     - `GROQ_API_KEY`
 
 4. **Redeploy**
    - Trigger a new deploy after adding env variables
@@ -191,9 +212,9 @@ Use this only for UI/styling work. Functions won't be available.
 chefmind-ai/
 ├── netlify/
 │   └── functions/          # Serverless backend functions
-│       ├── get-recipes.js  # Fetch recipes from TheMealDB
-│       ├── nutrition.js    # Get nutrition data
-│       ├── meal-plan.js    # Generate meal plans
+│       ├── get-recipes.js  # Fetch recipes (TheMealDB → Edamam)
+│       ├── nutrition.js    # Get nutrition data from Edamam
+│       ├── meal-plan.js    # Generate AI meal plans with Groq
 │       └── pantry.js       # Manage pantry items
 ├── public/
 │   ├── manifest.json       # PWA manifest
@@ -231,9 +252,11 @@ chefmind-ai/
 ### Meal Planning
 - Generate 3-14 day meal plans
 - Customize by dietary preference and budget
-- Get automated shopping lists
-- See cost estimates
+- Get automated shopping lists with interactive checkboxes
+- See cost estimates and progress tracking
 - Balance nutrition automatically
+- Dual view modes: compact table and detailed cards
+- AI-generated unique meal names and ingredients
 
 ### Pantry Management
 - Track all your ingredients
@@ -241,11 +264,13 @@ chefmind-ai/
 - Get warnings for expiring items
 - Reduce food waste
 
-### Voice Assistant
-- Hands-free recipe search
-- Navigate between pages
-- Get help and suggestions
-- Uses browser's Web Speech API
+### Interactive Shopping Lists
+- Persistent checkbox states with local storage
+- User-specific progress tracking
+- Visual progress bars and completion indicators
+- Smart bulk actions (check all/uncheck all)
+- Modern card-based UI with hover effects
+- Cross-session persistence
 
 ## 🌐 API Endpoints
 
@@ -299,8 +324,8 @@ colors: {
 ### Add New Dietary Filters
 Edit `src/components/DietaryFilter.jsx` to add more options.
 
-### Customize Meal Templates
-Edit `generateTemplateMealPlan()` in `netlify/functions/meal-plan.js`.
+### Customize AI Meal Generation
+Edit the AI prompt in `netlify/functions/meal-plan.js` to change meal plan style.
 
 ## 🐛 Troubleshooting
 
@@ -310,14 +335,20 @@ Edit `generateTemplateMealPlan()` in `netlify/functions/meal-plan.js`.
 - Use HTTPS (required for Web Speech API)
 
 ### Recipes Not Loading
-- Check if TheMealDB API is accessible
+- TheMealDB is free and unlimited (no API key needed)
+- Verify Edamam Recipe Search API credentials are set correctly
+- Check that you have separate Edamam apps for Recipe Search and Nutrition
 - Verify network connectivity
 - Check browser console for errors
+- Loading spinner should appear during searches
+- "No recipes found" only shows after clicking "Generate"
 
 ### Nutrition Data Failing
 - Verify Edamam API credentials
 - Check remaining API quota (10k/month free)
 - App will fallback to estimates if API fails
+- Health scores are now dynamic based on ingredients
+- Protein, carbs, and calories show real values, not zeros
 
 ### MongoDB Connection Issues
 - Verify connection string format
@@ -334,10 +365,10 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 ## 🙏 Acknowledgments
 
-- TheMealDB for the recipe database
-- Edamam for nutrition API
-- Hugging Face for AI capabilities
-- Open Food Facts for nutrition data
+- TheMealDB for the free, unlimited recipe database
+- Edamam for recipe search and nutrition analysis APIs
+- Groq for fast, reliable AI meal plan generation
+- Firebase for authentication
 - All open-source contributors
 
 ## 📧 Contact
