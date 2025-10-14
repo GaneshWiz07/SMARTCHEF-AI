@@ -1,4 +1,4 @@
-**LIVE LINK - **[https://chefmind-ai.netlify.app/](https://chefmind-ai.netlify.app/)
+**LIVE LINK -** [https://chefmind-ai.netlify.app/](https://chefmind-ai.netlify.app/)
 
 # 🤖 ChefMind AI - Your AI-Powered Recipe Assistant
 
