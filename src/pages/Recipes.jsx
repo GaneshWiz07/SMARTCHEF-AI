@@ -1,39 +1,46 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useRecipes } from '../context/RecipesContext';
 import IngredientInput from '../components/IngredientInput';
 import RecipeCard from '../components/RecipeCard';
 import DietaryFilter from '../components/DietaryFilter';
 import RegionFilter from '../components/RegionFilter';
 import axios from 'axios';
-import { Sparkles, Utensils, Search, Salad, UtensilsCrossed, BarChart3, Check, BookOpen, PartyPopper, Frown, Youtube } from 'lucide-react';
+import { Sparkles, Utensils, Search, Salad, UtensilsCrossed, BarChart3, BookOpen, PartyPopper, Frown } from 'lucide-react';
 
 function Recipes() {
-  const [recipes, setRecipes] = useState([]);
+  const navigate = useNavigate();
+  const {
+    recipes,
+    setRecipes,
+    ingredients,
+    setIngredients,
+    dietary,
+    setDietary,
+    region,
+    setRegion,
+    canLoadMore,
+    setCanLoadMore,
+    noMoreRecipes,
+    setNoMoreRecipes,
+    hasSearched,
+    setHasSearched,
+    clearRecipes,
+  } = useRecipes();
+  
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [ingredients, setIngredients] = useState([]);
-  const [dietary, setDietary] = useState('none');
-  const [region, setRegion] = useState('all');
-  const [selectedRecipe, setSelectedRecipe] = useState(null);
-  const [canLoadMore, setCanLoadMore] = useState(true);
-  const [noMoreRecipes, setNoMoreRecipes] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false); // Track if user has performed any search
 
   // Handler for dietary filter change - clears recipes
   const handleDietaryChange = (newDietary) => {
     setDietary(newDietary);
-    setRecipes([]); // Clear recipes when filter changes
-    setNoMoreRecipes(false);
-    setCanLoadMore(true);
-    setHasSearched(false); // Reset search state when filter changes
+    clearRecipes();
   };
 
   // Handler for region filter change - clears recipes
   const handleRegionChange = (newRegion) => {
     setRegion(newRegion);
-    setRecipes([]); // Clear recipes when filter changes
-    setNoMoreRecipes(false);
-    setCanLoadMore(true);
-    setHasSearched(false); // Reset search state when filter changes
+    clearRecipes();
   };
 
   const searchRecipes = async (append = false) => {
@@ -72,12 +79,14 @@ function Recipes() {
           setNoMoreRecipes(true);
         } else {
           setRecipes(prev => [...prev, ...newRecipes]);
-          setCanLoadMore(newRecipes.length >= 12);
+          // Always allow loading more unless we got 0 recipes
+          setCanLoadMore(true);
           setNoMoreRecipes(false);
         }
       } else {
         setRecipes(newRecipes);
-        setCanLoadMore(newRecipes.length >= 12);
+        // Always show load more button initially if we got any recipes
+        setCanLoadMore(newRecipes.length > 0);
         setNoMoreRecipes(false);
       }
     } catch (error) {
@@ -127,12 +136,14 @@ function Recipes() {
           setNoMoreRecipes(true);
         } else {
           setRecipes(prev => [...prev, ...newRecipes]);
-          setCanLoadMore(newRecipes.length >= 12);
+          // Always allow loading more unless we got 0 recipes
+          setCanLoadMore(true);
           setNoMoreRecipes(false);
         }
       } else {
         setRecipes(newRecipes);
-        setCanLoadMore(newRecipes.length >= 12);
+        // Always show load more button initially if we got any recipes
+        setCanLoadMore(newRecipes.length > 0);
         setNoMoreRecipes(false);
       }
     } catch (error) {
@@ -196,7 +207,12 @@ function Recipes() {
               <Utensils className="w-8 h-8 text-primary-600" />
             </div>
           </div>
-          <p className="mt-6 text-lg text-gray-700 font-medium">Finding delicious recipes...</p>
+          <p className="mt-6 text-lg text-gray-700 font-medium">
+            {ingredients.length > 0 
+              ? `Searching recipes with ${ingredients.join(', ')}...`
+              : 'Finding delicious recipes...'
+            }
+          </p>
           <div className="mt-3 flex justify-center gap-1">
             <span className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
             <span className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
@@ -207,8 +223,24 @@ function Recipes() {
 
       {/* Results */}
       {!loading && recipes.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div className="relative px-6 py-8 rounded-3xl overflow-hidden">
+          {/* Background Image with Overlay */}
+          <div className="absolute inset-0 -z-0">
+            <div 
+              className="absolute inset-0 opacity-10" 
+              style={{
+                backgroundImage: 'url("https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=80")',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }}
+            ></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-primary-50/40 to-blue-50/60 backdrop-blur-3xl"></div>
+          </div>
+          
+          {/* Content */}
+          <div className="relative z-10">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <h2 className="text-2xl font-bold">
               Found {recipes.length} Recipe{recipes.length !== 1 ? 's' : ''}
             </h2>
@@ -219,12 +251,12 @@ function Recipes() {
                 </div>
               )}
               {dietary !== 'none' && (
-                <div className="px-4 py-2 bg-primary-100 text-primary-700 rounded-lg font-medium text-sm">
+                <div className="px-4 py-2 bg-primary-100/80 backdrop-blur-sm text-primary-700 rounded-lg font-medium text-sm border border-primary-200/50">
                   Diet: {dietary.charAt(0).toUpperCase() + dietary.slice(1)}
                 </div>
               )}
               {region !== 'all' && (
-                <div className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium text-sm">
+                <div className="px-4 py-2 bg-blue-100/80 backdrop-blur-sm text-blue-700 rounded-lg font-medium text-sm border border-blue-200/50">
                   Region: {region}
                 </div>
               )}
@@ -235,7 +267,7 @@ function Recipes() {
               <RecipeCard
                 key={recipe.id}
                 recipe={recipe}
-                onClick={() => setSelectedRecipe(recipe)}
+                onClick={() => navigate(`/recipe/${recipe.id}`)}
               />
             ))}
           </div>
@@ -280,6 +312,7 @@ function Recipes() {
               </p>
             </div>
           )}
+          </div>
         </div>
       )}
 
@@ -341,217 +374,6 @@ function Recipes() {
           </div>
         </div>
       )}
-
-      {/* Recipe Detail Modal */}
-      {selectedRecipe && (
-        <RecipeDetailModal
-          recipe={selectedRecipe}
-          onClose={() => setSelectedRecipe(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-function InstructionSteps({ instructions }) {
-  // Parse instructions into steps
-  const parseInstructions = (text) => {
-    if (!text) return [];
-    
-    // Split by common delimiters: newlines, numbered steps, or periods followed by capital letters
-    let steps = [];
-    
-    // Try to split by explicit numbering (1., 2., Step 1, etc.)
-    if (/^\d+[\.\)]\s|^Step\s+\d+/im.test(text)) {
-      steps = text.split(/(?=\d+[\.\)]\s)|(?=Step\s+\d+)/i)
-        .filter(step => step.trim().length > 0)
-        .map(step => step.replace(/^\d+[\.\)]\s*|^Step\s+\d+[:\.\)]\s*/i, '').trim());
-    }
-    // Try splitting by newlines
-    else if (text.includes('\n')) {
-      steps = text.split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 20); // Filter out very short lines
-    }
-    // Try splitting by periods followed by uppercase letters
-    else if (/\.\s+[A-Z]/.test(text)) {
-      steps = text.split(/\.\s+(?=[A-Z])/)
-        .map(step => step.trim())
-        .filter(step => step.length > 0)
-        .map(step => step.endsWith('.') ? step : step + '.');
-    }
-    // If no clear pattern, treat as one long instruction
-    else {
-      steps = [text.trim()];
-    }
-    
-    return steps.filter(step => step.length > 0);
-  };
-  
-  const steps = parseInstructions(instructions);
-  
-  // If only one step and it's very long, it might be a paragraph - split by sentences
-  if (steps.length === 1 && steps[0].length > 200) {
-    const sentences = steps[0].split(/\.\s+/)
-      .filter(s => s.trim().length > 20)
-      .map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
-    if (sentences.length > 1) {
-      return (
-        <ol className="space-y-4">
-          {sentences.map((sentence, index) => (
-            <li key={index} className="flex gap-4">
-              <span className="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold">
-                {index + 1}
-              </span>
-              <p className="text-gray-700 flex-1 pt-1">{sentence}</p>
-            </li>
-          ))}
-        </ol>
-      );
-    }
-  }
-  
-  return (
-    <ol className="space-y-4">
-      {steps.map((step, index) => (
-        <li key={index} className="flex gap-4">
-          <span className="flex-shrink-0 w-8 h-8 bg-primary-600/90 backdrop-blur-sm text-white rounded-full flex items-center justify-center font-bold shadow-md">
-            {index + 1}
-          </span>
-          <p className="text-gray-700 flex-1 pt-1">{step}</p>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function RecipeDetailModal({ recipe, onClose }) {
-  const [nutrition, setNutrition] = useState(null);
-  const [loadingNutrition, setLoadingNutrition] = useState(false);
-
-  const fetchNutrition = async () => {
-    setLoadingNutrition(true);
-    try {
-      const ingredientStrings = recipe.ingredients.map(
-        ing => `${ing.measure} ${ing.name}`
-      );
-      const response = await axios.post('/.netlify/functions/nutrition', {
-        ingredients: ingredientStrings,
-        recipe: { 
-          id: recipe.id, // Pass recipe ID to fetch nutrition from Spoonacular
-          name: recipe.name,
-          healthScore: recipe.healthScore // Pass Spoonacular health score
-        },
-      });
-      setNutrition(response.data.nutrition);
-    } catch (error) {
-      console.error('Error fetching nutrition:', error);
-    } finally {
-      setLoadingNutrition(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl border border-white/20">
-        <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-white/20 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold pr-2">{recipe.name}</h2>
-          <button onClick={onClose} className="text-3xl hover:text-gray-600 flex-shrink-0">×</button>
-        </div>
-
-        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-          <img
-            src={recipe.image}
-            alt={recipe.name}
-            className="w-full h-64 object-cover rounded-xl"
-          />
-
-          <div className="flex gap-2">
-            <span className="px-3 py-1 bg-primary-100/80 backdrop-blur-sm text-primary-700 rounded-full text-sm border border-primary-200/50">
-              {recipe.category}
-            </span>
-            <span className="px-3 py-1 bg-blue-100/80 backdrop-blur-sm text-blue-700 rounded-full text-sm border border-blue-200/50">
-              {recipe.area}
-            </span>
-          </div>
-
-          <div>
-            <h3 className="text-lg sm:text-xl font-bold mb-3">Ingredients</h3>
-            <ul className="grid sm:grid-cols-2 gap-2">
-              {recipe.ingredients.map((ing, idx) => (
-                <li key={idx} className="flex items-center">
-                  <span className="text-primary-600 mr-2">•</span>
-                  <span className="font-medium">{ing.measure}</span>
-                  <span className="ml-2">{ing.name}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-xl font-bold mb-3">📝 Instructions</h3>
-            <InstructionSteps instructions={recipe.instructions} />
-          </div>
-
-          {recipe.video && (
-            <div>
-              <h3 className="text-xl font-bold mb-3">Video Tutorial</h3>
-              <a
-                href={recipe.video}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary inline-block flex items-center gap-2"
-              >
-                <Youtube className="w-4 h-4" /> Watch on YouTube
-              </a>
-            </div>
-          )}
-
-          <div>
-            <button
-              onClick={fetchNutrition}
-              disabled={loadingNutrition || nutrition}
-              className="btn-primary flex items-center gap-2"
-            >
-              {loadingNutrition ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Loading...
-                </>
-              ) : nutrition ? (
-                <>
-                  <Check className="w-4 h-4" /> Nutrition Loaded
-                </>
-              ) : (
-                <>
-                  <BarChart3 className="w-4 h-4" /> Get Nutrition Info
-                </>
-              )}
-            </button>
-
-            {nutrition && (
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="glass-card p-4">
-                  <h4 className="font-bold mb-2 text-sm sm:text-base">Calories</h4>
-                  <p className="text-2xl sm:text-3xl font-bold text-primary-600">{nutrition.calories}</p>
-                </div>
-                <div className="glass-card p-4">
-                  <h4 className="font-bold mb-2 text-sm sm:text-base">Health Score</h4>
-                  <p className="text-2xl sm:text-3xl font-bold text-green-600">{nutrition.healthScore}/100</p>
-                </div>
-                <div className="glass-card p-4">
-                  <h4 className="font-bold mb-2 text-sm sm:text-base">Protein</h4>
-                  <p className="text-xl sm:text-2xl">{nutrition.macros.protein.amount}g</p>
-                </div>
-                <div className="glass-card p-4">
-                  <h4 className="font-bold mb-2 text-sm sm:text-base">Carbs</h4>
-                  <p className="text-xl sm:text-2xl">{nutrition.macros.carbs.amount}g</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

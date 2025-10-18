@@ -83,6 +83,34 @@
       transform: translateX(0);
     }
   }
+  
+  /* Floating animations for hero decorations */
+  @keyframes float {
+    0%, 100% { 
+      transform: translateY(0px) rotate(0deg); 
+    }
+    50% { 
+      transform: translateY(-20px) rotate(2deg); 
+    }
+  }
+  
+  @keyframes float-delayed {
+    0%, 100% { 
+      transform: translateY(0px) rotate(0deg); 
+    }
+    50% { 
+      transform: translateY(-15px) rotate(-2deg); 
+    }
+  }
+  
+  @keyframes float-slow {
+    0%, 100% { 
+      transform: translateY(0px) rotate(0deg); 
+    }
+    50% { 
+      transform: translateY(-25px) rotate(3deg); 
+    }
+  }
 }
 
 @layer components {
@@ -141,6 +169,19 @@
   /* Smooth fade for page content */
   .page-content-fade {
     animation: fadeIn 400ms ease-in-out;
+  }
+  
+  /* Floating animations */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-float-delayed {
+    animation: float-delayed 8s ease-in-out infinite;
+  }
+  
+  .animate-float-slow {
+    animation: float-slow 10s ease-in-out infinite;
   }
 }
 

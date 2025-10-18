@@ -36,8 +36,61 @@ async function fetchFromTheMealDB(region, dietary, ingredients, limit = 12) {
   try {
     let recipes = [];
     
-    // If no specific filters, get random recipes from various categories
-    if ((!region || region === 'all') && (!dietary || dietary === 'none') && (!ingredients || ingredients.length === 0)) {
+    // Priority 1: Search by ingredient if provided
+    if (ingredients && ingredients.length > 0) {
+      console.log(`Searching TheMealDB by ingredients: ${ingredients.join(', ')}...`);
+      
+      // Search by first ingredient (TheMealDB API limitation)
+      const mainIngredient = ingredients[0];
+      try {
+        const response = await axios.get(
+          `https://www.themealdb.com/api/json/v1/1/filter.php?i=${encodeURIComponent(mainIngredient)}`
+        );
+        
+        if (response.data.meals) {
+          console.log(`Found ${response.data.meals.length} recipes with "${mainIngredient}"`);
+          
+          // Get detailed recipe information
+          const detailedRecipes = await Promise.all(
+            response.data.meals.slice(0, Math.min(limit * 2, response.data.meals.length)).map(async (meal) => {
+              try {
+                const detailResponse = await axios.get(
+                  `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`
+                );
+                return detailResponse.data.meals[0];
+              } catch (err) {
+                return null;
+              }
+            })
+          );
+          
+          let filteredRecipes = detailedRecipes.filter(r => r !== null);
+          
+          // Filter by additional ingredients if more than one provided
+          if (ingredients.length > 1) {
+            filteredRecipes = filteredRecipes.filter(recipe => {
+              const recipeIngredients = Object.keys(recipe)
+                .filter(key => key.startsWith('strIngredient') && recipe[key])
+                .map(key => recipe[key].toLowerCase())
+                .join(' ');
+              
+              // Check if recipe contains at least one more ingredient from the search
+              return ingredients.slice(1).some(ing => 
+                recipeIngredients.includes(ing.toLowerCase())
+              );
+            });
+          }
+          
+          recipes.push(...filteredRecipes);
+          console.log(`After filtering: ${recipes.length} recipes match ingredients`);
+        }
+      } catch (error) {
+        console.log('TheMealDB ingredient search failed:', error.message);
+      }
+    }
+    
+    // If no specific filters and no ingredients, get random recipes from various categories
+    if (recipes.length === 0 && (!region || region === 'all') && (!dietary || dietary === 'none') && (!ingredients || ingredients.length === 0)) {
       console.log('Fetching random recipes from TheMealDB...');
       try {
         const randomCount = Math.min(limit, 12);
@@ -53,8 +106,8 @@ async function fetchFromTheMealDB(region, dietary, ingredients, limit = 12) {
       }
     }
     
-    // Priority 1: Fetch by region if specified
-    if (recipes.length === 0 && region && region !== 'all') {
+    // Priority 2: Fetch by region if specified and we don't have enough recipes
+    if (recipes.length < limit && region && region !== 'all' && (!ingredients || ingredients.length === 0)) {
       try {
         const response = await axios.get(
           `https://www.themealdb.com/api/json/v1/1/filter.php?a=${region}`
@@ -84,8 +137,8 @@ async function fetchFromTheMealDB(region, dietary, ingredients, limit = 12) {
       }
     }
     
-    // Priority 2: Try by category if dietary is set
-    if (recipes.length === 0 && dietary && dietary !== 'none') {
+    // Priority 3: Try by category if dietary is set and we don't have enough recipes
+    if (recipes.length < limit && dietary && dietary !== 'none' && (!ingredients || ingredients.length === 0)) {
       const categoryMap = {
         'vegetarian': 'Vegetarian',
         'vegan': 'Vegan', 
@@ -257,9 +310,10 @@ async function fetchEdamamRecipes(query, cuisine, diet, limit = 20) {
         const ingredientLines = recipe.ingredientLines || [];
         
         // Create instruction text
+        const ingredientsText = ingredientLines.join('\n');
         const instructions = recipe.url ? 
-          `View full recipe at: ${recipe.url}\n\nIngredients:\n${ingredientLines.join('\n')}` : 
-          ingredientLines.join('\n');
+          `View full recipe at: ${recipe.url}\n\nIngredients:\n${ingredientsText}` : 
+          ingredientsText;
 
         return {
           idMeal: `edamam_${recipe.uri.split('#recipe_')[1] || Math.random().toString(36).substr(2, 9)}`,
@@ -313,10 +367,6 @@ export const handler = async (event) => {
 
     let recipes = [];
     
-    // PRIMARY SOURCE: Spoonacular API (380,000+ recipes)
-    // Calculate offset for pagination based on excluded IDs
-    const offset = Math.floor(excludedIds.length / limit) * limit;
-    
     // Build search query from ingredients
     const searchQuery = ingredients && ingredients.length > 0 ? ingredients.join(' ') : null;
     
@@ -329,7 +379,7 @@ export const handler = async (event) => {
       console.log(`✅ Fetched ${mealDBRecipes.length} recipes from TheMealDB`);
     }
     
-    // SUPPLEMENTARY 1: Try Edamam Recipe API if TheMealDB doesn't have enough results
+    // SUPPLEMENTARY: Try Edamam Recipe API if TheMealDB doesn't have enough results
     if (recipes.length < limit && EDAMAM_APP_ID && EDAMAM_APP_KEY) {
       console.log(`TheMealDB returned ${recipes.length}/${limit} recipes. Trying Edamam Recipe API for more...`);
       
@@ -351,7 +401,7 @@ export const handler = async (event) => {
       }
     }
     
-    // That's it! Only TheMealDB + Edamam (no Spoonacular)
+    // That's it! Only TheMealDB + Edamam
 
     // Score recipes based on ingredient matching if user searched with ingredients
     if (ingredients && ingredients.length > 0 && recipes.length > 0) {

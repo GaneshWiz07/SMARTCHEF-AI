@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { RecipesProvider } from './context/RecipesContext';
 import { ChefHat, Home as HomeIcon, Utensils, Calendar, Package } from 'lucide-react';
 import Logo from './components/Logo';
 import Home from './pages/Home';
 import Recipes from './pages/Recipes';
+import RecipeDetail from './pages/RecipeDetail';
 import MealPlanner from './pages/MealPlanner';
 import Pantry from './pages/Pantry';
 import Login from './pages/Login';
@@ -303,6 +305,14 @@ function AppContent() {
               }
             />
             <Route
+              path="/recipe/:id"
+              element={
+                <ProtectedRoute>
+                  <RecipeDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/meal-planner"
               element={
                 <ProtectedRoute>
@@ -341,7 +351,9 @@ function App() {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
-        <AppContent />
+        <RecipesProvider>
+          <AppContent />
+        </RecipesProvider>
       </AuthProvider>
     </Router>
   );
