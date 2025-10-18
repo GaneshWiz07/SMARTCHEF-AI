@@ -34,7 +34,7 @@ function Login() {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Welcome to <span className="text-primary-600">ChefMind</span> <span className="text-blue-600">AI</span>
+            Welcome to <span className="text-primary-600">SmartChef</span> <span className="text-blue-600">AI</span>
           </h1>
           <p className="text-gray-600 text-lg">
             Your AI-powered recipe assistant

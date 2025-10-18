@@ -1,7 +1,7 @@
 {
   "name": "chefmind-ai",
   "version": "1.0.0",
-  "description": "ChefMind AI - AI-powered recipe assistant with intelligent meal planning and nutrition tracking",
+  "description": "SmartChef AI - AI-powered recipe assistant with intelligent meal planning and nutrition tracking",
   "private": true,
   "type": "module",
   "scripts": {

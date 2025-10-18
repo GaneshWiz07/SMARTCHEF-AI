@@ -1,6 +1,6 @@
 {
-  "name": "ChefMind AI",
-  "short_name": "ChefMind AI",
+  "name": "SmartChef AI",
+  "short_name": "SmartChef AI",
   "description": "AI-powered recipe assistant with intelligent meal planning",
   "start_url": "/",
   "display": "standalone",

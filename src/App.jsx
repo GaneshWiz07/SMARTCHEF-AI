@@ -68,7 +68,7 @@ function Navigation() {
           <Link to="/" className="flex items-center space-x-2" onClick={closeMobileMenu}>
             <span className="text-2xl sm:text-3xl">👨‍🍳</span>
             <span className="text-lg sm:text-2xl font-bold text-primary-600">
-              ChefMind <span className="text-blue-600">AI</span>
+              SmartChef <span className="text-blue-600">AI</span>
             </span>
           </Link>
           
@@ -324,7 +324,7 @@ function AppContent() {
       {showFooter && (
         <footer className="bg-white/70 backdrop-blur-md mt-16 py-8 border-t border-white/20">
           <div className="container mx-auto px-4 text-center text-gray-600">
-            <p>© 2025 ChefMind AI - Your AI-Powered Recipe Assistant</p>
+            <p>© 2025 SmartChef AI - Your AI-Powered Recipe Assistant</p>
           </div>
         </footer>
       )}

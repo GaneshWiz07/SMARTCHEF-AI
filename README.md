@@ -1,4 +1,4 @@
-# 🤖 ChefMind AI - Your AI-Powered Recipe Assistant
+# 🤖 SmartChef AI - Your AI-Powered Recipe Assistant
 
 An AI-powered recipe assistant that uses advanced machine learning to create personalized meal plans, match ingredients intelligently, and help you cook smarter, eat healthier, and reduce food waste. Features a modern, responsive interface with real-time AI meal planning and interactive shopping lists.
 
@@ -377,6 +377,6 @@ For questions or suggestions, please open an issue on GitHub.
 
 ---
 
-**Made with ❤️ and 🍳 by ChefMind AI Team**
+**Made with ❤️ and 🍳 by SmartChef AI Team**
 
 

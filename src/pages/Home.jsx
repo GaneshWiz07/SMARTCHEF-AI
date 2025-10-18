@@ -6,7 +6,7 @@ function Home() {
       {/* Hero Section */}
     <section className="text-center py-8 sm:py-12 px-4">
       <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-        Welcome to <span className="text-primary-600">ChefMind</span> <span className="text-blue-600">AI</span>
+        Welcome to <span className="text-primary-600">SmartChef</span> <span className="text-blue-600">AI</span>
       </h1>
       <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
         Your AI-powered recipe assistant that uses machine learning to create personalized meal plans, match ingredients intelligently, and help you cook smarter.
@@ -46,7 +46,7 @@ function Home() {
 
           {/* Benefits Section */}
             <section className="glass-card p-6 sm:p-8 mx-4">
-              <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8">Why ChefMind AI?</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8">Why SmartChef AI?</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           <BenefitCard
             title="Save Time"
