@@ -1,7 +1,7 @@
 
 # 🤖 SmartChef AI - Your AI-Powered Recipe Assistant
 
-**LIVE LINK -** [https://chefmind-ai.netlify.app/](https://chefmind-ai.netlify.app/)
+**LIVE LINK -** [https://smartchef-ai-assistant.netlify.app/](https://smartchef-ai-assistant.netlify.app/)
 
 An AI-powered recipe assistant that uses advanced machine learning to create personalized meal plans, match ingredients intelligently, and help you cook smarter, eat healthier, and reduce food waste. Features a modern, responsive interface with real-time AI meal planning and interactive shopping lists.
 
