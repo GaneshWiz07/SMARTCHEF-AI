@@ -1,0 +1,6 @@
+<!-- This is a placeholder file. Please generate actual PNG files using the chef-icon.svg -->
+<!-- You can use tools like: -->
+<!-- 1. Inkscape: inkscape chef-icon.svg --export-png=logo-192.png --export-width=192 --export-height=192 -->
+<!-- 2. ImageMagick: convert -density 300 -background none chef-icon.svg -resize 192x192 logo-192.png -->
+<!-- 3. Online converters: https://cloudconvert.com/svg-to-png -->
+<!-- For now, the SVG will be used as fallback -->

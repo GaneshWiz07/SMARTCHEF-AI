@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { Bot, Calendar, DollarSign, Flame, LayoutList, LayoutGrid, ShoppingCart, Check, Square, Clock } from 'lucide-react';
 
 function MealPlanner() {
   const { user } = useAuth();
@@ -91,7 +92,7 @@ function MealPlanner() {
     <div className="space-y-6 sm:space-y-8">
       <div className="text-center px-4">
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-full mb-4">
-          <span className="text-lg sm:text-xl">🤖</span>
+          <Bot className="w-5 h-5 sm:w-6 sm:h-6" />
           <span className="text-xs sm:text-sm font-bold">AI-POWERED</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold mb-2">AI Meal Planner</h1>
@@ -169,7 +170,7 @@ function MealPlanner() {
             </>
           ) : (
             <>
-              <span>🤖</span>
+              <Bot className="w-5 h-5" />
               <span>Generate AI Meal Plan</span>
             </>
           )}
@@ -179,7 +180,9 @@ function MealPlanner() {
       {/* Loading State */}
       {loading && (
         <div className="text-center py-12">
-          <div className="animate-spin text-6xl">⏳</div>
+          <div className="flex justify-center mb-4">
+            <Clock className="w-16 h-16 text-primary-600 animate-pulse" />
+          </div>
           <p className="mt-4 text-gray-600">Creating your personalized meal plan...</p>
         </div>
       )}
@@ -190,17 +193,23 @@ function MealPlanner() {
           {/* Summary */}
           <div className="grid md:grid-cols-3 gap-4">
             <div className="card p-4 text-center">
-              <div className="text-3xl mb-2">📅</div>
+              <div className="flex justify-center mb-2">
+                <Calendar className="w-8 h-8 text-primary-600" />
+              </div>
               <div className="font-bold text-2xl">{preferences.days} Days</div>
               <div className="text-gray-600">Planned</div>
             </div>
             <div className="card p-4 text-center">
-              <div className="text-3xl mb-2">💰</div>
+              <div className="flex justify-center mb-2">
+                <DollarSign className="w-8 h-8 text-green-600" />
+              </div>
               <div className="font-bold text-2xl">${mealPlan.estimatedCost}</div>
               <div className="text-gray-600">Estimated Cost</div>
             </div>
             <div className="card p-4 text-center">
-              <div className="text-3xl mb-2">🔥</div>
+              <div className="flex justify-center mb-2">
+                <Flame className="w-8 h-8 text-orange-600" />
+              </div>
               <div className="font-bold text-2xl">{mealPlan.nutritionSummary?.avgCaloriesPerDay || 'N/A'}</div>
               <div className="text-gray-600">Avg Calories/Day</div>
             </div>
@@ -217,17 +226,17 @@ function MealPlanner() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                📊 Compact Table
+                <LayoutList className="w-4 h-4 inline-block mr-2" />Compact Table
               </button>
               <button
                 onClick={() => setViewMode('detailed')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                   viewMode === 'detailed'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                📋 Detailed Cards
+                <LayoutGrid className="w-4 h-4 inline-block mr-2" />Detailed Cards
               </button>
             </div>
           </div>
@@ -258,13 +267,15 @@ function MealPlanner() {
           <div className="card p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <h3 className="text-2xl font-bold">🛒 Shopping List</h3>
+                <h3 className="text-2xl font-bold flex items-center gap-2">
+                  <ShoppingCart className="w-6 h-6" /> Shopping List
+                </h3>
                 <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full">
                   <span className="text-sm text-blue-700">
                     {getCheckedCount()}/{getTotalItems()} checked
                   </span>
                   {getCheckedCount() === getTotalItems() && getTotalItems() > 0 && (
-                    <span className="text-green-600">✓</span>
+                    <Check className="w-4 h-4 text-green-600" strokeWidth={3} />
                   )}
                 </div>
               </div>
@@ -274,14 +285,14 @@ function MealPlanner() {
                   className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={getCheckedCount() === getTotalItems()}
                 >
-                  ✓ Check All
+                  <Check className="w-3 h-3 inline-block mr-1" strokeWidth={3} /> Check All
                 </button>
                 <button 
                   onClick={uncheckAllItems}
                   className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={getCheckedCount() === 0}
                 >
-                  ☐ Uncheck All
+                  <Square className="w-3 h-3 inline-block mr-1" /> Uncheck All
                 </button>
               </div>
             </div>

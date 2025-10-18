@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ChefHat, Home as HomeIcon, Utensils, Calendar, Package } from 'lucide-react';
+import Logo from './components/Logo';
 import Home from './pages/Home';
 import Recipes from './pages/Recipes';
 import MealPlanner from './pages/MealPlanner';
@@ -66,7 +68,7 @@ function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2" onClick={closeMobileMenu}>
-            <span className="text-2xl sm:text-3xl">👨‍🍳</span>
+            <Logo className="w-8 h-8 sm:w-10 sm:h-10" />
             <span className="text-lg sm:text-2xl font-bold text-primary-600">
               SmartChef <span className="text-blue-600">AI</span>
             </span>
@@ -187,7 +189,7 @@ function Navigation() {
               }`}
               onClick={closeMobileMenu}
             >
-              🏠 Home
+              <HomeIcon className="w-4 h-4 inline-block mr-2" /> Home
             </Link>
             <Link
               to="/recipes"
@@ -198,7 +200,7 @@ function Navigation() {
               }`}
               onClick={closeMobileMenu}
             >
-              🍳 Recipes
+              <Utensils className="w-4 h-4 inline-block mr-2" /> Recipes
             </Link>
             <Link
               to="/meal-planner"
@@ -209,7 +211,7 @@ function Navigation() {
               }`}
               onClick={closeMobileMenu}
             >
-              📅 Meal Planner
+              <Calendar className="w-4 h-4 inline-block mr-2" /> Meal Planner
             </Link>
             <Link
               to="/pantry"
@@ -220,7 +222,7 @@ function Navigation() {
               }`}
               onClick={closeMobileMenu}
             >
-              📦 Pantry
+              <Package className="w-4 h-4 inline-block mr-2" /> Pantry
             </Link>
 
             {user ? (
@@ -324,7 +326,10 @@ function AppContent() {
       {showFooter && (
         <footer className="bg-white/70 backdrop-blur-md mt-16 py-8 border-t border-white/20">
           <div className="container mx-auto px-4 text-center text-gray-600">
-            <p>© 2025 SmartChef AI - Your AI-Powered Recipe Assistant</p>
+            <div className="flex items-center justify-center gap-2">
+              <Logo className="w-5 h-5" />
+              <p>© 2025 SmartChef AI - Your AI-Powered Recipe Assistant</p>
+            </div>
           </div>
         </footer>
       )}

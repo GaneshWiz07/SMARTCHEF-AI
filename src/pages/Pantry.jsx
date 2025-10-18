@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { AlertTriangle, Plus, Clock, Package, Trash2, X } from 'lucide-react';
 
 function Pantry() {
   const { user } = useAuth();
@@ -112,7 +113,9 @@ function Pantry() {
       {/* MongoDB Connection Warning */}
       {error && error.includes('MONGO_URI') && (
         <div className="card p-6 bg-yellow-50 border-2 border-yellow-400">
-          <h3 className="text-xl font-bold text-yellow-800 mb-2">⚠️ MongoDB Not Configured</h3>
+          <h3 className="text-xl font-bold text-yellow-800 mb-2 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" /> MongoDB Not Configured
+          </h3>
           <p className="text-yellow-700 mb-3">
             The Pantry feature requires MongoDB to store your items. Please add your MongoDB connection string to use this feature.
           </p>
@@ -213,16 +216,26 @@ function Pantry() {
         <button 
           onClick={addItem} 
           disabled={saving || !newItem.name || !newItem.quantity}
-          className="btn-primary mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary mt-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          {saving ? '⏳ Adding...' : '➕ Add to Pantry'}
+          {saving ? (
+            <>
+              <Clock className="w-4 h-4 animate-pulse" /> Adding...
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4" /> Add to Pantry
+            </>
+          )}
         </button>
       </div>
 
       {/* Loading State */}
       {loading && (
         <div className="text-center py-12">
-          <div className="animate-spin text-6xl">📦</div>
+          <div className="flex justify-center mb-4">
+            <Package className="w-16 h-16 text-primary-600 animate-pulse" />
+          </div>
           <p className="mt-4 text-gray-600">Loading your pantry...</p>
         </div>
       )}
@@ -249,9 +262,10 @@ function Pantry() {
                   <h3 className="font-bold text-lg capitalize">{item.name}</h3>
                   <button
                     onClick={() => deleteItem(item.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-100 transition-colors"
+                    aria-label="Delete item"
                   >
-                    🗑️
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
                 <p className="text-gray-600">
@@ -266,9 +280,9 @@ function Pantry() {
                       : 'text-gray-500'
                   }`}>
                     {isExpired(item.expiryDate)
-                      ? '❌ Expired'
+                      ? (<><X className="w-4 h-4 inline-block mr-1" /> Expired</>)
                       : isExpiringSoon(item.expiryDate)
-                      ? '⚠️ Expiring soon'
+                      ? (<><AlertTriangle className="w-4 h-4 inline-block mr-1" /> Expiring soon</>)
                       : `Expires: ${new Date(item.expiryDate).toLocaleDateString()}`}
                   </p>
                 )}
@@ -281,7 +295,9 @@ function Pantry() {
       {/* Empty State */}
       {!loading && pantryItems.length === 0 && (
         <div className="text-center py-12 text-gray-500">
-          <div className="text-6xl mb-4">📦</div>
+          <div className="flex justify-center mb-4">
+            <Package className="w-16 h-16 text-gray-400" />
+          </div>
           <p className="text-xl">Your pantry is empty. Add some items to get started!</p>
         </div>
       )}

@@ -1,20 +1,22 @@
+import { Globe } from 'lucide-react';
+
 function RegionFilter({ value, onChange }) {
   const options = [
-    { value: 'all', label: 'All Regions', icon: '🌍' },
-    { value: 'Indian', label: 'Indian', icon: '🇮🇳' },
-    { value: 'Chinese', label: 'Chinese', icon: '🇨🇳' },
-    { value: 'Japanese', label: 'Japanese', icon: '🇯🇵' },
-    { value: 'Thai', label: 'Thai', icon: '🇹🇭' },
-    { value: 'French', label: 'French', icon: '🇫🇷' },
-    { value: 'Italian', label: 'Italian', icon: '🇮🇹' },
-    { value: 'Mexican', label: 'Mexican', icon: '🇲🇽' },
-    { value: 'American', label: 'American', icon: '🇺🇸' },
-    { value: 'British', label: 'British', icon: '🇬🇧' },
-    { value: 'Greek', label: 'Greek', icon: '🇬🇷' },
-    { value: 'Spanish', label: 'Spanish', icon: '🇪🇸' },
-    { value: 'Turkish', label: 'Turkish', icon: '🇹🇷' },
-    { value: 'Vietnamese', label: 'Vietnamese', icon: '🇻🇳' },
-    { value: 'Moroccan', label: 'Moroccan', icon: '🇲🇦' },
+    { value: 'all', label: 'All Regions', flag: '🌍' },
+    { value: 'Indian', label: 'Indian', flag: '🇮🇳' },
+    { value: 'Chinese', label: 'Chinese', flag: '🇨🇳' },
+    { value: 'Japanese', label: 'Japanese', flag: '🇯🇵' },
+    { value: 'Thai', label: 'Thai', flag: '🇹🇭' },
+    { value: 'French', label: 'French', flag: '🇫🇷' },
+    { value: 'Italian', label: 'Italian', flag: '🇮🇹' },
+    { value: 'Mexican', label: 'Mexican', flag: '🇲🇽' },
+    { value: 'American', label: 'American', flag: '🇺🇸' },
+    { value: 'British', label: 'British', flag: '🇬🇧' },
+    { value: 'Greek', label: 'Greek', flag: '🇬🇷' },
+    { value: 'Spanish', label: 'Spanish', flag: '🇪🇸' },
+    { value: 'Turkish', label: 'Turkish', flag: '🇹🇷' },
+    { value: 'Vietnamese', label: 'Vietnamese', flag: '🇻🇳' },
+    { value: 'Moroccan', label: 'Moroccan', flag: '🇲🇦' },
   ];
 
   return (
@@ -31,7 +33,11 @@ function RegionFilter({ value, onChange }) {
                 : 'bg-white/90 backdrop-blur-sm text-gray-700 border border-gray-300 hover:border-blue-400'
             }`}
           >
-            <span className="mr-1">{option.icon}</span>
+            {option.value === 'all' ? (
+              <Globe className="w-4 h-4 mr-1" />
+            ) : (
+              <span className="mr-1">{option.flag}</span>
+            )}
             <span className="hidden min-[400px]:inline">{option.label}</span>
           </button>
         ))}

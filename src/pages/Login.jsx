@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { ChefHat, Check } from 'lucide-react';
+import Logo from '../components/Logo';
 
 function Login() {
   const { signInWithGoogle } = useAuth();
@@ -29,9 +31,7 @@ function Login() {
         {/* Logo and Welcome */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="bg-white/80 backdrop-blur-md p-6 rounded-full shadow-xl border border-white/30">
-              <span className="text-6xl">👨‍🍳</span>
-            </div>
+            <Logo className="w-20 h-20 sm:w-24 sm:h-24" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome to <span className="text-primary-600">SmartChef</span> <span className="text-blue-600">AI</span>
@@ -102,19 +102,19 @@ function Login() {
             </p>
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm text-gray-600">
-                <span className="text-green-500 text-xl">✓</span>
+                <Check className="w-5 h-5 text-green-500 flex-shrink-0" strokeWidth={2.5} />
                 <span>Personalized recipe recommendations</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
-                <span className="text-green-500 text-xl">✓</span>
+                <Check className="w-5 h-5 text-green-500 flex-shrink-0" strokeWidth={2.5} />
                 <span>Custom meal plans & shopping lists</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
-                <span className="text-green-500 text-xl">✓</span>
+                <Check className="w-5 h-5 text-green-500 flex-shrink-0" strokeWidth={2.5} />
                 <span>Your own pantry manager</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
-                <span className="text-green-500 text-xl">✓</span>
+                <Check className="w-5 h-5 text-green-500 flex-shrink-0" strokeWidth={2.5} />
                 <span>Nutrition tracking & insights</span>
               </div>
             </div>

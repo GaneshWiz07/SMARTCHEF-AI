@@ -1,3 +1,5 @@
+import { Check, Sparkles } from 'lucide-react';
+
 function RecipeCard({ recipe, onClick }) {
   return (
     <div
@@ -13,8 +15,8 @@ function RecipeCard({ recipe, onClick }) {
         <h3 className="font-bold text-lg mb-2 line-clamp-2">{recipe.name}</h3>
         <div className="flex gap-2 mb-3 flex-wrap">
           {recipe.ingredientMatchCount > 0 && recipe.totalUserIngredients > 0 && (
-            <span className="px-2 py-1 bg-green-600/90 backdrop-blur-sm text-white text-xs rounded-full font-bold shadow-md">
-              ✓ {recipe.ingredientMatchCount}/{recipe.totalUserIngredients} matches
+            <span className="px-2 py-1 bg-green-600/90 backdrop-blur-sm text-white text-xs rounded-full font-bold shadow-md flex items-center gap-1">
+              <Check className="w-3 h-3" strokeWidth={3} /> {recipe.ingredientMatchCount}/{recipe.totalUserIngredients} matches
             </span>
           )}
           {recipe.category && (
@@ -28,8 +30,8 @@ function RecipeCard({ recipe, onClick }) {
             </span>
           )}
           {recipe.source === 'Edamam' && (
-            <span className="px-2 py-1 bg-green-100/80 backdrop-blur-sm text-green-700 text-xs rounded-full">
-              ✨ Premium
+            <span className="px-2 py-1 bg-green-100/80 backdrop-blur-sm text-green-700 text-xs rounded-full flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Premium
             </span>
           )}
         </div>

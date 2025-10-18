@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+  <!-- Compact horizontal logo for navigation bar -->
+  <defs>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Icon circle -->
+  <circle cx="30" cy="30" r="28" fill="url(#iconGradient)"/>
+  
+  <!-- Chef Hat Icon (simplified for small size) -->
+  <g transform="translate(30, 30)">
+    <!-- Hat top -->
+    <path d="M -10,-5 Q -10,-12 -5,-12 Q -5,-15 0,-15 Q 5,-15 5,-12 Q 10,-12 10,-5" 
+          fill="white" 
+          stroke="white" 
+          stroke-width="1.2" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+    
+    <!-- Hat base -->
+    <rect x="-12" y="-5" width="24" height="11" 
+          rx="1.5" 
+          fill="white" 
+          stroke="white" 
+          stroke-width="1.2"/>
+    
+    <!-- Pleats -->
+    <line x1="-7" y1="-5" x2="-7" y2="6" stroke="#22c55e" stroke-width="0.8" opacity="0.3"/>
+    <line x1="-2" y1="-5" x2="-2" y2="6" stroke="#22c55e" stroke-width="0.8" opacity="0.3"/>
+    <line x1="2" y1="-5" x2="2" y2="6" stroke="#22c55e" stroke-width="0.8" opacity="0.3"/>
+    <line x1="7" y1="-5" x2="7" y2="6" stroke="#22c55e" stroke-width="0.8" opacity="0.3"/>
+  </g>
+  
+  <!-- Text "SmartChef" -->
+  <text x="70" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#22c55e">
+    SmartChef
+  </text>
+  
+  <!-- "AI" badge -->
+  <text x="175" y="36" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#2563eb">
+    AI
+  </text>
+</svg>

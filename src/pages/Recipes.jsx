@@ -4,6 +4,7 @@ import RecipeCard from '../components/RecipeCard';
 import DietaryFilter from '../components/DietaryFilter';
 import RegionFilter from '../components/RegionFilter';
 import axios from 'axios';
+import { Sparkles, Utensils, Search, Salad, UtensilsCrossed, BarChart3, Check, BookOpen, PartyPopper, Frown, Youtube } from 'lucide-react';
 
 function Recipes() {
   const [recipes, setRecipes] = useState([]);
@@ -176,9 +177,9 @@ function Recipes() {
           <div className="flex justify-center">
             <button
               onClick={handleRandomRecipes}
-              className="bg-gradient-to-r from-primary-600 to-green-600 hover:from-primary-700 hover:to-green-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+              className="bg-gradient-to-r from-primary-600 to-green-600 hover:from-primary-700 hover:to-green-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
             >
-              ✨ Generate
+              <Sparkles className="w-5 h-5" /> Generate
             </button>
           </div>
         </div>
@@ -191,8 +192,8 @@ function Recipes() {
             {/* Outer spinning ring */}
             <div className="w-20 h-20 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
             {/* Inner icon */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-3xl">
-              🍳
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <Utensils className="w-8 h-8 text-primary-600" />
             </div>
           </div>
           <p className="mt-6 text-lg text-gray-700 font-medium">Finding delicious recipes...</p>
@@ -213,8 +214,8 @@ function Recipes() {
             </h2>
             <div className="flex gap-2 flex-wrap">
               {ingredients.length > 0 && (
-                <div className="px-4 py-2 bg-green-100/80 backdrop-blur-sm text-green-700 rounded-lg font-medium text-sm border border-green-200/50">
-                  🥗 With: {ingredients.join(', ')}
+                <div className="px-4 py-2 bg-green-100/80 backdrop-blur-sm text-green-700 rounded-lg font-medium text-sm border border-green-200/50 flex items-center gap-2">
+                  <Salad className="w-4 h-4" /> With: {ingredients.join(', ')}
                 </div>
               )}
               {dietary !== 'none' && (
@@ -253,7 +254,9 @@ function Recipes() {
                     Loading More...
                   </>
                 ) : (
-                  <>📚 Load More Recipes</>
+                  <>
+                    <BookOpen className="w-5 h-5" /> Load More Recipes
+                  </>
                 )}
               </button>
               <p className="text-xs sm:text-sm text-gray-500 mt-2">
@@ -265,7 +268,9 @@ function Recipes() {
           {/* No More Recipes Message */}
           {noMoreRecipes && recipes.length > 0 && (
             <div className="text-center mt-8 glass-card p-6 bg-gradient-to-r from-primary-50/50 to-blue-50/50">
-              <div className="text-5xl mb-3">🎉</div>
+              <div className="flex justify-center mb-3">
+                <PartyPopper className="w-12 h-12 text-primary-600" />
+              </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">That's all the recipes!</h3>
               <p className="text-gray-600">
                 You've seen all {recipes.length} available recipes matching your criteria.
@@ -281,7 +286,9 @@ function Recipes() {
       {/* No Results - Only show after searching and getting 0 results */}
       {!loading && recipes.length === 0 && hasSearched && (
         <div className="text-center py-12 glass-card p-8">
-          <div className="text-6xl mb-4">😕</div>
+          <div className="flex justify-center mb-4">
+            <Frown className="w-16 h-16 text-gray-400" strokeWidth={1.5} />
+          </div>
           <h3 className="text-xl font-bold mb-2">No recipes found</h3>
           <p className="text-gray-600 mb-4">
             {dietary !== 'none' || region !== 'all'
@@ -314,15 +321,23 @@ function Recipes() {
       {/* Empty State - Show before any search */}
       {!loading && recipes.length === 0 && !hasSearched && (
         <div className="text-center py-16 glass-card p-8">
-          <div className="text-7xl mb-4">🔍</div>
+          <div className="flex justify-center mb-4">
+            <Search className="w-20 h-20 text-gray-400" strokeWidth={1.5} />
+          </div>
           <h3 className="text-2xl font-bold mb-2">Ready to find recipes?</h3>
           <p className="text-gray-600 mb-6">
-            Enter ingredients you have or click "✨ Generate" for random suggestions
+            Enter ingredients you have or click &quot;<Sparkles className="w-4 h-4 inline" /> Generate&quot; for random suggestions
           </p>
           <div className="flex gap-2 justify-center flex-wrap text-sm text-gray-500">
-            <span className="px-3 py-1 bg-gray-100 rounded-full">🥗 50+ Cuisines</span>
-            <span className="px-3 py-1 bg-gray-100 rounded-full">🍽️ Multiple Diets</span>
-            <span className="px-3 py-1 bg-gray-100 rounded-full">📊 Nutrition Info</span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full flex items-center gap-1">
+              <Salad className="w-3 h-3" /> 50+ Cuisines
+            </span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full flex items-center gap-1">
+              <UtensilsCrossed className="w-3 h-3" /> Multiple Diets
+            </span>
+            <span className="px-3 py-1 bg-gray-100 rounded-full flex items-center gap-1">
+              <BarChart3 className="w-3 h-3" /> Nutrition Info
+            </span>
           </div>
         </div>
       )}
@@ -485,9 +500,9 @@ function RecipeDetailModal({ recipe, onClose }) {
                 href={recipe.video}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-primary inline-block"
+                className="btn-primary inline-block flex items-center gap-2"
               >
-                🎥 Watch on YouTube
+                <Youtube className="w-4 h-4" /> Watch on YouTube
               </a>
             </div>
           )}
@@ -496,9 +511,22 @@ function RecipeDetailModal({ recipe, onClose }) {
             <button
               onClick={fetchNutrition}
               disabled={loadingNutrition || nutrition}
-              className="btn-primary"
+              className="btn-primary flex items-center gap-2"
             >
-              {loadingNutrition ? 'Loading...' : nutrition ? '✓ Nutrition Loaded' : '📊 Get Nutrition Info'}
+              {loadingNutrition ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Loading...
+                </>
+              ) : nutrition ? (
+                <>
+                  <Check className="w-4 h-4" /> Nutrition Loaded
+                </>
+              ) : (
+                <>
+                  <BarChart3 className="w-4 h-4" /> Get Nutrition Info
+                </>
+              )}
             </button>
 
             {nutrition && (

@@ -1,11 +1,13 @@
+import { Utensils, Leaf, Sprout, Apple, Beef, Fish } from 'lucide-react';
+
 function DietaryFilter({ value, onChange }) {
   const options = [
-    { value: 'none', label: 'All Recipes', icon: '🍽️' },
-    { value: 'vegetarian', label: 'Vegetarian', icon: '🥗' },
-    { value: 'vegan', label: 'Vegan', icon: '🌱' },
-    { value: 'keto', label: 'Keto', icon: '🥑' },
-    { value: 'paleo', label: 'Paleo', icon: '🍖' },
-    { value: 'seafood', label: 'Seafood', icon: '🐟' },
+    { value: 'none', label: 'All Recipes', icon: <Utensils className="w-4 h-4" /> },
+    { value: 'vegetarian', label: 'Vegetarian', icon: <Leaf className="w-4 h-4" /> },
+    { value: 'vegan', label: 'Vegan', icon: <Sprout className="w-4 h-4" /> },
+    { value: 'keto', label: 'Keto', icon: <Apple className="w-4 h-4" /> },
+    { value: 'paleo', label: 'Paleo', icon: <Beef className="w-4 h-4" /> },
+    { value: 'seafood', label: 'Seafood', icon: <Fish className="w-4 h-4" /> },
   ];
 
   return (
@@ -14,15 +16,14 @@ function DietaryFilter({ value, onChange }) {
         <button
           key={option.value}
           onClick={() => onChange(option.value)}
-          className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
+          className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm sm:text-base flex items-center gap-2 ${
             value === option.value
               ? 'bg-primary-600 text-white shadow-lg scale-105'
               : 'bg-white/90 backdrop-blur-sm text-gray-700 border border-gray-300 hover:border-primary-400'
           }`}
         >
-          <span className="mr-1 sm:mr-2">{option.icon}</span>
+          <span className="flex items-center">{option.icon}</span>
           <span className="hidden xs:inline sm:inline">{option.label}</span>
-          <span className="inline xs:hidden sm:hidden">{option.icon}</span>
         </button>
       ))}
     </div>

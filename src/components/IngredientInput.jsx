@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Plus, Search } from 'lucide-react';
 
 function IngredientInput({ ingredients, onChange, onSearch }) {
   const [input, setInput] = useState('');
@@ -33,15 +34,15 @@ function IngredientInput({ ingredients, onChange, onSearch }) {
           className="input-field flex-1 text-sm sm:text-base"
         />
         <div className="flex gap-2">
-          <button onClick={addIngredient} className="btn-secondary flex-1 sm:flex-initial text-sm sm:text-base">
-            ➕ Add
+          <button onClick={addIngredient} className="btn-secondary flex-1 sm:flex-initial text-sm sm:text-base flex items-center justify-center gap-2">
+            <Plus className="w-4 h-4" /> Add
           </button>
           <button 
             onClick={onSearch} 
             disabled={ingredients.length === 0}
-            className="btn-primary flex-1 sm:flex-initial text-sm sm:text-base"
+            className="btn-primary flex-1 sm:flex-initial text-sm sm:text-base flex items-center justify-center gap-2"
           >
-            🔍 Search
+            <Search className="w-4 h-4" /> Search
           </button>
         </div>
       </div>
