@@ -84,7 +84,7 @@ An AI-powered recipe assistant that uses advanced machine learning to create per
 ### 1. Clone the repository
 ```bash
 git clone <your-repo-url>
-cd chefmind
+cd smartchef-ai
 ```
 
 ### 2. Install dependencies
@@ -212,7 +212,7 @@ Use this only for UI/styling work. Functions won't be available.
 ## 📁 Project Structure
 
 ```
-chefmind-ai/
+smartchef-ai/
 ├── netlify/
 │   └── functions/          # Serverless backend functions
 │       ├── get-recipes.js  # Fetch recipes (TheMealDB → Edamam)
