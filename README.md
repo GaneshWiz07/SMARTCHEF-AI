@@ -380,6 +380,6 @@ For questions or suggestions, please open an issue on GitHub.
 
 ---
 
-**Made with ❤️ and 🍳 by SmartChef AI Team**
+**Made with ❤️ and 🍳 by Ganesh E**
 
 
