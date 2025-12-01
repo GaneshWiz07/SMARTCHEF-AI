@@ -11,19 +11,27 @@ jobs:
     steps:
       - name: Ping Netlify Functions & MongoDB Atlas
         run: |
-          # Ping the pantry endpoint (lightweight GET operation)
-          # This keeps Netlify functions warm and MongoDB Atlas connection active
-          # Using a special userId to avoid creating unnecessary data
-          response=$(curl -s -w "%{http_code}" -o /dev/null \
-            "${{ secrets.NETLIFY_SITE_URL }}/.netlify/functions/pantry?userId=keep-alive" \
+          # Ping the health check endpoint (lightweight GET operation)
+          # This keeps Netlify functions warm and optionally checks MongoDB Atlas
+          response=$(curl -s -w "%{http_code}" -o /tmp/health_response.json \
+            "${{ secrets.NETLIFY_SITE_URL }}/.netlify/functions/health" \
             -H "Content-Type: application/json")
           
           echo "Response code: $response"
           
-          if [ "$response" -eq 200 ] || [ "$response" -eq 404 ]; then
-            echo "✅ Netlify Functions and MongoDB Atlas ping successful"
+          if [ "$response" -eq 200 ]; then
+            echo "✅ Netlify Functions ping successful"
+            # Display health check details
+            if [ -f /tmp/health_response.json ]; then
+              echo "Health check details:"
+              cat /tmp/health_response.json | head -20
+            fi
           else
             echo "❌ Ping failed with code: $response"
+            if [ -f /tmp/health_response.json ]; then
+              echo "Error response:"
+              cat /tmp/health_response.json
+            fi
             exit 1
           fi
 
